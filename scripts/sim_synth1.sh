@@ -1,13 +1,6 @@
 #!/bin/bash
 
-if [ $# -ne 1 -o ! -d "$1" ]; then
-	echo "Usage: $0 <design>" >&2
-	exit 1
-fi
-
-set -ex
-design=$1
-. scripts/settings.sh
+source scripts/settings.sh
 
 mkdir -p $design/gen
 rm -f $design/gen/synth1.ys
