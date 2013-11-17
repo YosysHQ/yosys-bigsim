@@ -128,7 +128,7 @@ initial begin
 		#50; clk <= ~clk;
 		cycles = cycles + 1;
 		#50; clk <= ~clk;
-		if (cycles == 32900)
+		if (cycles == 20000)
 			$finish;
 	end
 end
@@ -157,6 +157,7 @@ reg [15:0] pmem    [`PMEM_SIZE/2-1:0];
 
 integer output_idx;
 reg [15:0] output_buf [1023:0];
+event output_eof;
 
 integer i;
 initial begin
@@ -169,25 +170,25 @@ initial begin
 end
 
 always @(posedge mclk) begin
-	dmem_dout <= 'bx;
-	pmem_dout <= 'bx;
+	dmem_dout <= 0;
+	pmem_dout <= 0;
 
 	if (~dmem_cen && ~dmem_wen == 0) begin
 		addr = 2*dmem_addr + `PER_SIZE;
-		$display("%t -- DR  @%04x %x%x", $time, addr, dmem_hi[dmem_addr], dmem_lo[dmem_addr]);
+		$display("+LOG+ %t -- DR  @%04x %x%x", $time, addr, dmem_hi[dmem_addr], dmem_lo[dmem_addr]);
 		dmem_dout[15:8] <= dmem_hi[dmem_addr];
 		dmem_dout[ 7:0] <= dmem_lo[dmem_addr];
 	end
 
 	if (~pmem_cen) begin
 		addr = 2*pmem_addr - `PMEM_SIZE;
-		$display("%t -- PR  @%04x %x", $time, addr, pmem[pmem_addr]);
+		$display("+LOG+ %t -- PR  @%04x %x", $time, addr, pmem[pmem_addr]);
 		pmem_dout <= pmem[pmem_addr];
 	end
 
 	if (~dmem_cen && ~dmem_wen) begin
 		addr = 2*dmem_addr + `PER_SIZE;
-		$display("%t -- DW  @%04x %x%x", $time, addr, ~dmem_wen[1] ? dmem_din[15:8] : 8'hzz, ~dmem_wen[0] ? dmem_din[ 7:0] : 8'hzz);
+		$display("+LOG+ %t -- DW  @%04x %x%x", $time, addr, ~dmem_wen[1] ? dmem_din[15:8] : 8'hzz, ~dmem_wen[0] ? dmem_din[ 7:0] : 8'hzz);
 		if (~dmem_wen[1])
 			dmem_hi[dmem_addr] <= dmem_din[15:8];
 		if (~dmem_wen[0])
@@ -200,20 +201,24 @@ always @(posedge mclk) begin
 
 	if (per_en && per_we) begin
 		addr = 2*per_addr;
-		$display("%t -- PER @%04x %x%x  <---", $time, addr, per_we[1] ? per_din[15:8] : 8'hzz, per_we[0] ? per_din[ 7:0] : 8'hzz);
+		$display("+LOG+ %t -- PER @%04x %x%x  <---", $time, addr, per_we[1] ? per_din[15:8] : 8'hzz, per_we[0] ? per_din[ 7:0] : 8'hzz);
 
 		if (addr == 16'h0100) begin
-			output_buf[output_idx] = per_din;
-			output_idx = output_idx + 1;
 			if (per_din == 0) begin
-				#1;
-				for (i = 0; i < output_idx; i = i + 1) begin
-					$display("OUT: %d", output_buf[i]);
-				end
-				$finish;
+				#1000 -> output_eof;
+			end else begin
+				output_buf[output_idx] = per_din;
+				output_idx = output_idx + 1;
 			end
 		end
 	end
+end
+
+always @(output_eof) begin
+	for (i = 0; i < output_idx; i = i + 1) begin
+		$display("+OUT+ %t %d", $time, output_buf[i]);
+	end
+	$finish;
 end
 
 initial begin
