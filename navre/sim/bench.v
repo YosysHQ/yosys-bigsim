@@ -60,7 +60,7 @@ initial begin
 		#50; clk <= ~clk;
 		cycles = cycles + 1;
 		#50; clk <= ~clk;
-		if (cycles == 200)
+		if (cycles == 100000)
 			$finish;
 	end
 end
@@ -99,7 +99,7 @@ always @(posedge clk) begin
 		addr = io_a;
 		$display("+LOG+ %t IO @%x   %x  <---", $time, addr, io_do);
 		if (io_do == 0) begin
-			#1000 -> output_eof;
+			-> output_eof;
 		end else begin
 			output_buf[output_idx] = io_do;
 			output_idx = output_idx + 1;
@@ -111,6 +111,7 @@ always @(posedge clk) begin
 end
 
 always @(output_eof) begin
+	#1001;
 	for (i = 0; i < output_idx; i = i + 1) begin
 		$display("+OUT+ %t %d", $time, output_buf[i]);
 	end

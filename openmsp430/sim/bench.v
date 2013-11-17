@@ -205,7 +205,7 @@ always @(posedge mclk) begin
 
 		if (addr == 16'h0100) begin
 			if (per_din == 0) begin
-				#1000 -> output_eof;
+				-> output_eof;
 			end else begin
 				output_buf[output_idx] = per_din;
 				output_idx = output_idx + 1;
@@ -215,6 +215,7 @@ always @(posedge mclk) begin
 end
 
 always @(output_eof) begin
+	#1001;
 	for (i = 0; i < output_idx; i = i + 1) begin
 		$display("+OUT+ %t %d", $time, output_buf[i]);
 	end
