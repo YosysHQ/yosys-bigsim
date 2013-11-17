@@ -1,3 +1,4 @@
 
-A collection of big designs to run post-synthesis simulations with yosys.
+A collection of larger designs to run post-synthesis simulations for testing
+yosys. Right now only the OpenMSP430 CPU is included, but more is planned.
 
