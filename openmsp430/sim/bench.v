@@ -115,20 +115,20 @@ assign cpu_en = 1, dbg_en = 0;
 reg clk, rst;
 integer cycles;
 initial begin
-	clk <= 0;
+	clk <= 1;
 	rst <= 0;
 	cycles = 0;
-	while (cycles < 64) begin
-		#50; clk <= ~clk;
+	while (cycles < 8) begin
 		#50; clk <= ~clk;
 		cycles = cycles + 1;
+		#50; clk <= ~clk;
 	end
-	rst <= 1;
+	rst <= #20 1;
 	forever begin
 		#50; clk <= ~clk;
-		#50; clk <= ~clk;
 		cycles = cycles + 1;
-		if (cycles == 512)
+		#50; clk <= ~clk;
+		if (cycles == 32900)
 			$finish;
 	end
 end
@@ -149,46 +149,71 @@ assign dbg_uart_rxd = 0;
 
 // -----------------------------------------------------------------------------------
 
-reg [15:8] dmem_hi [`DMEM_SIZE-1:0];
-reg [ 7:0] dmem_lo [`DMEM_SIZE-1:0];
-reg [15:0] pmem    [`PMEM_SIZE-1:0];
+reg [15:0] addr;
+
+reg [15:8] dmem_hi [`DMEM_SIZE/2-1:0];
+reg [ 7:0] dmem_lo [`DMEM_SIZE/2-1:0];
+reg [15:0] pmem    [`PMEM_SIZE/2-1:0];
+
+integer output_idx;
+reg [15:0] output_buf [1023:0];
 
 integer i;
 initial begin
-	for (i = 0; i < `DMEM_SIZE; i=i+1) begin
+	for (i = 0; i < `DMEM_SIZE/2; i=i+1) begin
 		dmem_hi[i] = 0;
 		dmem_lo[i] = 0;
 	end
-	`include "demo.v"
+	`include "sieve.v"
+	output_idx = 0;
 end
 
 always @(posedge mclk) begin
 	dmem_dout <= 'bx;
 	pmem_dout <= 'bx;
 
-	if (~dmem_cen) begin
-		$display("%t %d -- DR  @%04x %x%x", $time, cycles, dmem_addr, dmem_hi[dmem_addr], dmem_lo[dmem_addr]);
+	if (~dmem_cen && ~dmem_wen == 0) begin
+		addr = 2*dmem_addr + `PER_SIZE;
+		$display("%t -- DR  @%04x %x%x", $time, addr, dmem_hi[dmem_addr], dmem_lo[dmem_addr]);
 		dmem_dout[15:8] <= dmem_hi[dmem_addr];
 		dmem_dout[ 7:0] <= dmem_lo[dmem_addr];
 	end
 
 	if (~pmem_cen) begin
-		$display("%t %d -- PR  @%04x %x", $time, cycles, pmem_addr, pmem[pmem_addr]);
+		addr = 2*pmem_addr - `PMEM_SIZE;
+		$display("%t -- PR  @%04x %x", $time, addr, pmem[pmem_addr]);
 		pmem_dout <= pmem[pmem_addr];
 	end
 
-	if (~dmem_cen && ~dmem_wen)
-		$display("%t %d -- DW  @%04x %x%x", $time, cycles, pmem_addr, ~dmem_wen[1] ? dmem_din[15:8] : 8'hzz, ~dmem_wen[0] ? dmem_din[ 7:0] : 8'hzz);
-	if (~dmem_cen && ~dmem_wen[1])
-		dmem_hi[dmem_addr] <= dmem_din[15:8];
-	if (~dmem_cen && ~dmem_wen[0])
-		dmem_lo[dmem_addr] <= dmem_din[ 7:0];
+	if (~dmem_cen && ~dmem_wen) begin
+		addr = 2*dmem_addr + `PER_SIZE;
+		$display("%t -- DW  @%04x %x%x", $time, addr, ~dmem_wen[1] ? dmem_din[15:8] : 8'hzz, ~dmem_wen[0] ? dmem_din[ 7:0] : 8'hzz);
+		if (~dmem_wen[1])
+			dmem_hi[dmem_addr] <= dmem_din[15:8];
+		if (~dmem_wen[0])
+			dmem_lo[dmem_addr] <= dmem_din[ 7:0];
+	end
 end
 
 always @(posedge mclk) begin
-	per_dout <= 'bx;
-	if (per_en && per_we)
-		$display("%t %d -- PER @%04x %x%x  <---", $time, cycles, per_addr, per_we[1] ? per_din[15:8] : 8'hzz, per_we[0] ? per_din[ 7:0] : 8'hzz);
+	per_dout <= 0;
+
+	if (per_en && per_we) begin
+		addr = 2*per_addr;
+		$display("%t -- PER @%04x %x%x  <---", $time, addr, per_we[1] ? per_din[15:8] : 8'hzz, per_we[0] ? per_din[ 7:0] : 8'hzz);
+
+		if (addr == 16'h0100) begin
+			output_buf[output_idx] = per_din;
+			output_idx = output_idx + 1;
+			if (per_din == 0) begin
+				#1;
+				for (i = 0; i < output_idx; i = i + 1) begin
+					$display("OUT: %d", output_buf[i]);
+				end
+				$finish;
+			end
+		end
+	end
 end
 
 initial begin

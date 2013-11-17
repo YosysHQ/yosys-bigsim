@@ -1,6 +1,7 @@
 #!/bin/sh
 set -ex
-msp430-gcc -o demo.elf demo.c
-msp430-objcopy -O ihex demo.elf demo.ihex
-python ihex2vlog.py < demo.ihex > demo.v
-rm -f demo.elf demo.ihex
+msp430-gcc -Wall -Os -o sieve.elf sieve.c
+msp430-objcopy -O ihex sieve.elf sieve.ihex
+python ihex2vlog.py < sieve.ihex > sieve.v
+msp430-objdump -d sieve.elf
+rm -f sieve.elf sieve.ihex
