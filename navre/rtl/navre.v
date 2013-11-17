@@ -646,6 +646,7 @@ always @(*) begin
 					dmem_sel = DMEM_SEL_SP_PCL;
 					dmem_we = 1'b1;
 					push = 1'b1;
+					pc_sel = PC_SEL_KL;
 					next_state = RCALL;
 				end
 				16'b0001_00xx_xxxx_xxxx: begin
@@ -780,7 +781,6 @@ always @(*) begin
 			dmem_sel = DMEM_SEL_SP_PCH;
 			dmem_we = 1'b1;
 			push = 1'b1;
-			pc_sel = PC_SEL_KL;
 			next_state = STALL;
 		end
 		ICALL: begin
