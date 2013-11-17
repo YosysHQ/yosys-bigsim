@@ -23,7 +23,7 @@ rm -f $design/gen/sim_synth1.out
 	echo "proc; fsm; opt; techmap; opt"
 	echo "write_verilog -noattr $design/gen/synth1.v"
 } > $design/gen/synth1.ys
-yosys $design/gen/synth1.ys
+yosys -v2 -l $design/gen/synth1.log $design/gen/synth1.ys
 
 iverilog -o $design/gen/sim_synth1 -I$design/rtl/ -I$design/sim/ $design/gen/synth1.v $sim_files
 $design/gen/sim_synth1 | tee $design/gen/sim_synth1.out
