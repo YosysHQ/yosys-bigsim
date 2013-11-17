@@ -120,7 +120,7 @@ end
 
 initial begin
 	// $dumpfile("bench.vcd");
-	// $dumpvars(0, UUT);
+	// $dumpvars(0, testbench);
 end
 
 endmodule

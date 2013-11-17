@@ -1,6 +1,6 @@
 #!/bin/sh
 set -ex
-avr-gcc -Wall -Os -o sieve.elf sieve.c
+avr-gcc -Wall -Os -fno-inline -mmcu=attiny22 -o sieve.elf sieve.c
 avr-objcopy -O ihex sieve.elf sieve.ihex
 python ihex2vlog.py < sieve.ihex > sieve.v
 avr-objdump -d sieve.elf

@@ -170,10 +170,10 @@ initial begin
 end
 
 always @(posedge mclk) begin
-	dmem_dout <= 0;
-	pmem_dout <= 0;
+	dmem_dout <= 'bx;
+	pmem_dout <= 'bx;
 
-	if (~dmem_cen && ~dmem_wen == 0) begin
+	if (~dmem_cen && &dmem_wen) begin
 		addr = 2*dmem_addr + `PER_SIZE;
 		$display("+LOG+ %t -- DR  @%04x %x%x", $time, addr, dmem_hi[dmem_addr], dmem_lo[dmem_addr]);
 		dmem_dout[15:8] <= dmem_hi[dmem_addr];
@@ -224,7 +224,7 @@ end
 
 initial begin
 	// $dumpfile("bench.vcd");
-	// $dumpvars(0, UUT);
+	// $dumpvars(0, testbench);
 end
 
 endmodule

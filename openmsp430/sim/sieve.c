@@ -6,7 +6,7 @@
 #  include <stdio.h>
 #endif
 
-#define BITMAP_SIZE (4*16)
+#define BITMAP_SIZE 64
 #define OUTPORT 0x0100
 
 static uint16_t bitmap[BITMAP_SIZE/16];
