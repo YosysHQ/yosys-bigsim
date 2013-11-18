@@ -1,6 +1,7 @@
 
 A collection of larger designs to run post-synthesis simulations for testing
-yosys. This is work in progress. Only the OpenMSP430 is used at the moment.
+yosys. This is work in progress. Type 'make -j8' to run tests and use a max.
+of 8 parallel threads.
 
 openmsp430:
 	http://opencores.org/project,openmsp430
