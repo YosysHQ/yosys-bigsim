@@ -1,7 +1,7 @@
 #!/bin/sh
 set -ex
-avr-gcc -o fib.elf -mmcu=avr2 -Os fib.S -nostdlib
-avr-objcopy -O ihex fib.elf fib.ihex
-python ihex2vlog.py < fib.ihex > fib.v
-avr-objdump -d fib.elf
-rm -f fib.elf fib.ihex
+avr-gcc -Wall -Os -fno-inline -mmcu=avr2 -o sieve.elf sieve.c
+avr-objcopy -O ihex sieve.elf sieve.ihex
+python ihex2vlog.py < sieve.ihex > sieve.v
+avr-objdump -d sieve.elf
+rm -f sieve.elf sieve.ihex

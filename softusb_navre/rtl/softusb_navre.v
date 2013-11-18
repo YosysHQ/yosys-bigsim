@@ -16,8 +16,8 @@
  */
 
 module softusb_navre #(
-	parameter pmem_width = 10, /* < in 16-bit instructions */
-	parameter dmem_width = 10  /* < in bytes */
+	parameter pmem_width = 11, /* < in 16-bit instructions */
+	parameter dmem_width = 13  /* < in bytes */
 ) (
 	input clk,
 	input rst,
