@@ -75,10 +75,7 @@ always @(posedge sys_clk) begin
 	end
 end
 
-softusb_navre #(
-	.pmem_width(10),
-	.dmem_width(10)
-) dut (
+softusb_navre dut (
 	.clk(sys_clk),
 	.rst(sys_rst),
 
@@ -98,7 +95,20 @@ softusb_navre #(
 	.io_di(io_di)
 );
 
+integer cycles = 0;
+always @(posedge sys_clk) begin
+	cycles = cycles + 1;
+	if (cycles == 1000) begin
+		$display("Reached limit of 1000 cycles.");
+		$finish;
+	end
+end
+
+
 initial begin
+	// $dumpfile("bench.vcd");
+	// $dumpvars(0, testbench);
+
 	$display("Test: Fibonacci (assembler)");
 	`include "fib.v"
 	sys_rst = 1'b1;
