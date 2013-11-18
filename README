@@ -1,4 +1,13 @@
 
 A collection of larger designs to run post-synthesis simulations for testing
-yosys. Right now only the OpenMSP430 CPU is included, but more is planned.
+yosys. This is work in progress. Only the OpenMSP430 is used at the moment.
+
+openmsp430:
+	http://opencores.org/project,openmsp430
+
+aes_5cycle_2stage:
+	http://opencores.org/project,aes-encryption
+
+softusb_navre:
+	http://opencores.org/project,navre
 
