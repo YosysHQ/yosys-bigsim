@@ -208,7 +208,7 @@ assign pmem_a = rst ?
 /* Load/store operations */
 reg [3:0] dmem_sel;
 
-parameter DMEM_SEL_UNDEFINED	= 3'bxxx;
+parameter DMEM_SEL_UNDEFINED	= 4'bx;
 parameter DMEM_SEL_X		= 4'd0;
 parameter DMEM_SEL_XPLUS	= 4'd1;
 parameter DMEM_SEL_XMINUS	= 4'd2;
@@ -622,7 +622,11 @@ always @(*) begin
 	io_we = 1'b0;
 
 	dmem_we = 1'b0;
-	dmem_sel = DMEM_SEL_UNDEFINED;
+	// when simulating the synthesized netlist with icarus verilog
+	// this x-bits propagate through the internal state of the cpu.
+	// so we set it to any value (namely 0) instead. -- Clifford Wolf
+	// dmem_sel = DMEM_SEL_UNDEFINED;
+	dmem_sel = 0;
 
 	push = 1'b0;
 	pop = 1'b0;
