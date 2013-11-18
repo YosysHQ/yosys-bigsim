@@ -1,5 +1,5 @@
 
-DESIGNS = openmsp430 aes_5cycle_2stage # softusb_navre
+DESIGNS = openmsp430 aes_5cycle_2stage softusb_navre
 
 all: $(addsuffix /gen/test.ok,$(DESIGNS)) 
 	@echo ""
