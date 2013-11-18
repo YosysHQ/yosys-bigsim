@@ -19,5 +19,5 @@ rm -f $design/gen/sim_synth1.out
 yosys -v2 -l $design/gen/synth1.log $design/gen/synth1.ys
 
 iverilog -o $design/gen/sim_synth1 -I$design/rtl/ -I$design/sim/ $design/gen/synth1.v $sim_files
-$design/gen/sim_synth1 | tee $design/gen/sim_synth1.out
+vvp -n -l $design/gen/sim_synth1.out $design/gen/sim_synth1
 
