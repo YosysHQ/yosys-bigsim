@@ -98,8 +98,8 @@ softusb_navre dut (
 integer cycles = 0;
 always @(posedge sys_clk) begin
 	cycles = cycles + 1;
-	if (cycles == 1000) begin
-		$display("Reached limit of 1000 cycles.");
+	if (cycles == 10000) begin
+		$display("Reached limit of 10000 cycles.");
 		$finish;
 	end
 end
@@ -111,6 +111,7 @@ initial begin
 
 	$display("Test: Fibonacci (assembler)");
 	`include "fib.v"
+	pmem_d = 0;
 	sys_rst = 1'b1;
 	#15;
 	sys_rst = 1'b0;
