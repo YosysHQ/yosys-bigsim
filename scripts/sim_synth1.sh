@@ -13,7 +13,7 @@ rm -f $design/gen/sim_synth1.out
 		echo "read_verilog -I$design/rtl/ $file"
 	done
 	echo "hierarchy -top $TOP"
-	echo "proc; opt; memory; opt; fsm; opt; techmap; opt"
+	echo "proc; opt; memory; opt; fsm; opt; techmap; opt; splitnets; clean"
 	echo "write_verilog -noattr $design/gen/synth1.v"
 } > $design/gen/synth1.ys
 yosys -v2 -l $design/gen/synth1.log $design/gen/synth1.ys

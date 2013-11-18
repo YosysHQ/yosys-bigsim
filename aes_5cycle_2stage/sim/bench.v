@@ -396,7 +396,8 @@ module testbench;
           tv[283]= 384'h00000000000000000000000000000000ffffffffffffffffffffffffffffffff3f5b8cc9ea855a0afa7347d23e8d664e;
           
           
-          for(n=0;n<284;n=n+1)
+          // for(n=0;n<284;n=n+1)
+          for(n=0;n<28;n=n+1)
             begin
 	      @(posedge clk);
 	      #1;
@@ -408,7 +409,8 @@ module testbench;
 
 	      while(!done)	@(posedge clk);
 
-	      $display("INFO: (a) Vector %3d/284: xpected %x, Got %x %t", n, ciph, text_out, $time);
+	      // $display("INFO: (a) Vector %3d/284: xpected %x, Got %x %t", n, ciph, text_out, $time);
+	      $display("INFO: (a) Vector %2d/28: xpected %x, Got %x %t", n, ciph, text_out, $time);
 
 	      if(text_out != ciph | (|text_out)==1'bx)
 	        begin
