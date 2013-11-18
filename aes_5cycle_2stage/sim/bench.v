@@ -100,7 +100,6 @@ module testbench;
       // while(1)
         begin
 	  kld = 0;
-	  clk <= 0;
 	  rst = 0;
 	  error_cnt = 0;
 	  repeat(4)	@(posedge clk);
@@ -409,7 +408,7 @@ module testbench;
 
 	      while(!done)	@(posedge clk);
 
-	      $display("INFO: (a) Vector %0d/284: xpected %x, Got %x %t", n, ciph, text_out, $time);
+	      $display("INFO: (a) Vector %3d/284: xpected %x, Got %x %t", n, ciph, text_out, $time);
 
 	      if(text_out != ciph | (|text_out)==1'bx)
 	        begin
@@ -458,7 +457,13 @@ module testbench;
   assign plain   = tmp[255:128];
   assign ciph    = tmp[127:0];
 
-  always #5 clk = ~clk;
+  initial begin
+    clk <= 0;
+    forever begin
+      // $display("CLK: %b", clk);
+      #5; clk <= ~clk;
+    end
+  end
 
   aes_cipher_top	 u0
     (
@@ -486,6 +491,20 @@ module testbench;
     end
  -----/\----- EXCLUDED -----/\----- */
   
+  integer cycle = 0;
+  always @(posedge clk) begin
+  	cycle = cycle + 1;
+	// $display("CYCLE %d", cycle);
+	if (cycle == 10000) begin
+		$display("Reached limit of 10000 cycles.");
+		$finish;
+	end
+  end
+
+  initial begin
+    // $dumpfile("bench.vcd");
+    // $dumpvars(0, testbench);
+  end
   
 endmodule
 // Local Variables:
