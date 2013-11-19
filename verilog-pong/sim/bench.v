@@ -1,4 +1,7 @@
 
+// To create a GIF animation from the generated images:
+// convert frame_*.ppm pong.gif
+
 `undef WRITE_FRAMES_PPM
 `define MAX_NUMBER_FRAMES 2
 
