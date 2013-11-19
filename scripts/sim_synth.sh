@@ -12,7 +12,7 @@ rm -f $design/gen/sim_synth.out
 	for file in $rtl_files; do
 		echo "read_verilog -I$design/rtl/ $file"
 	done
-	echo "hierarchy -top $TOP"
+	echo "hierarchy -check -top $TOP"
 	echo "proc; opt; memory; opt; fsm; opt; techmap; opt; splitnets; clean"
 	echo "write_verilog -noattr $design/gen/synth.v"
 } > $design/gen/synth.ys
