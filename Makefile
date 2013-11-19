@@ -18,6 +18,15 @@ all: $(addsuffix /gen/test.ok,$(DESIGNS))
 %/gen/test.ok: %/gen/sim_rtl.out %/gen/sim_synth.out
 	cmp $(word 1,$^) $(word 2,$^)
 
+timing:
+	$(MAKE) clean
+	echo; for d in $(DESIGNS); do \
+		echo "--------------------------------------"; echo; \
+		( set -x; time bash -c "bash scripts/sim_rtl.sh   $$d > /dev/null 2>&1" ); echo; \
+		( set -x; time bash -c "bash scripts/sim_synth.sh $$d > /dev/null 2>&1" ); echo; \
+	done; echo "--------------------------------------"; echo
+	$(MAKE) all
+
 clean:
 	rm -rf */gen/
 
