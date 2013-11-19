@@ -143,8 +143,17 @@ module pong_graph(
 	end
 
 	// deal with the ball's movement
-	always @(posedge refr_tick)
-	begin
+	always @(posedge refr_tick, posedge reset)
+	  if (reset) begin
+		hit_left = 1'b0;
+		hit_right = 1'b0;
+		miss = 1'b0;
+		x_delta_next = V_X;
+		y_delta_next = V_Y;
+		right_score = 8'b0;
+		left_score = 8'b0;
+		added = 0;
+	  end else begin
 		hit_left = 1'b0;
 		hit_right = 1'b0;
 		miss = 1'b0;
@@ -220,7 +229,7 @@ module pong_graph(
 				right_score = 8'b0;
 				left_score = 8'b0;
 			end
-	end
+	  end
 
 	// assign rgb to the correct color
 	always @* 
