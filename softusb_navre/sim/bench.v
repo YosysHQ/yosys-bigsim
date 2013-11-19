@@ -60,8 +60,8 @@ initial begin
 		#50; clk <= ~clk;
 		cycles = cycles + 1;
 		#50; clk <= ~clk;
-		if (cycles == 100000) begin
-			$display("Reached limit of 100000 cpu cycles.");
+		if (cycles == 10000) begin
+			$display("Reached limit of 10000 cpu cycles.");
 			$finish;
 		end
 	end
@@ -88,12 +88,13 @@ initial begin
 end
 
 always @(posedge clk) begin
-	if (pmem_ce) begin
+	if (rst)
+		pmem_d <= 0;
+	else if (pmem_ce) begin
 		addr = pmem_a * 2;
 		$display("+LOG+ %t PR @%x %x", $time, addr, pmem[pmem_a]);
 		pmem_d <= pmem[pmem_a];
-	end else if (rst)
-		pmem_d <= 0;
+	end
 	if (dmem_we) begin
 		addr = dmem_a;
 		$display("+LOG+ %t DW @%x   %x", $time, addr, dmem_do);

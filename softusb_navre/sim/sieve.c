@@ -8,7 +8,7 @@
 #  include <avr/io.h>
 #endif
 
-#define BITMAP_SIZE 64
+#define BITMAP_SIZE 24
 #define OUTPORT 42
 
 static uint8_t bitmap[BITMAP_SIZE/8];
