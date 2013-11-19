@@ -15,6 +15,9 @@ Currently included designs:
 	softusb_navre:
 		http://opencores.org/project,navre
 
+	amber23:
+		http://opencores.org/project,amber
+
 
 Adding new designs to this collection:
 --------------------------------------
