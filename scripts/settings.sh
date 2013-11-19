@@ -7,6 +7,10 @@ fi
 set -ex
 design=${1%/}
 
+YOSYS_SPLITNETS=false
+TOP="" # must be set in settings.sh
+RTL="" # must be set in settings.sh
+SIM="" # must be set in settings.sh
 source $design/sim/settings.sh
 
 rtl_files=""

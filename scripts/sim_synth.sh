@@ -10,10 +10,13 @@ rm -f $design/gen/sim_synth.out
 
 {
 	for file in $rtl_files; do
-		echo "read_verilog -I$design/rtl/ $file"
+		echo "read_verilog -I$design/rtl/ -I$design/sim/ $file"
 	done
 	echo "hierarchy -check -top $TOP"
-	echo "proc; opt; memory; opt; fsm; opt; techmap; opt; splitnets; clean"
+	echo "proc; opt; memory; opt; fsm; opt; techmap; opt"
+	if $YOSYS_SPLITNETS; then
+		echo "splitnets; clean"
+	fi
 	echo "write_verilog -noattr $design/gen/synth.v"
 } > $design/gen/synth.ys
 yosys -v2 -l $design/gen/synth.log $design/gen/synth.ys
