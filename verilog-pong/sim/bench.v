@@ -3,7 +3,7 @@
 // convert frame_*.ppm pong.gif
 
 `undef WRITE_FRAMES_PPM
-`define MAX_NUMBER_FRAMES 2
+`define MAX_NUMBER_FRAMES 3
 
 module testbench;
 
@@ -33,14 +33,13 @@ initial begin
 end
 
 initial begin
-	reset <= 1;
-	repeat(10) @(posedge clk);
-	reset <= 0;
-end
-
-initial begin
 	btn1 <= 2'b00;
+	btn2 <= 2'b00;
+	reset <= 1;
+	repeat(5) @(posedge clk);
 	btn2 <= 2'b01;
+	repeat(5) @(posedge clk);
+	reset <= 0;
 end
 
 integer x, y, z, idx, fd;
