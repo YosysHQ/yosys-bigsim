@@ -7,6 +7,7 @@ fi
 set -ex
 design=${1%/}
 
+YOSYS_COARSE=false
 YOSYS_SPLITNETS=false
 TOP="" # must be set in settings.sh
 RTL="" # must be set in settings.sh
