@@ -230,7 +230,7 @@ reg lds_writeback;
 
 wire [4:0] write_dest = lds_writeback ? Rd_r : Rd;
 
-// synthesis translate_off
+// *not* synthesis translate_off
 integer i_rst_regf;
 // synthesis translate_on
 reg [7:0] R;
@@ -252,7 +252,7 @@ always @(posedge clk) begin
 		 * Not resetting the register file enables the use of more efficient
 		 * distributed block RAM.
 		 */
-		// synthesis translate_off
+		// *not* synthesis translate_off
 		for(i_rst_regf=0;i_rst_regf<24;i_rst_regf=i_rst_regf+1)
 			GPR[i_rst_regf] = 8'd0;
 		U = 16'd0;
