@@ -1,3 +1,5 @@
+YOSYS_COARSE=true
+YOSYS_GLOBRST=true
 TOP="a23_core"
 RTL="a23_alu.v a23_barrel_shift_fpga.v a23_barrel_shift.v a23_cache.v
 	a23_coprocessor.v a23_core.v a23_decode.v a23_execute.v a23_fetch.v

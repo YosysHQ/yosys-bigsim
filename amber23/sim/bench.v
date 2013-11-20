@@ -6,6 +6,7 @@ reg clk;
 reg i_irq;              // Interrupt request, active high
 reg i_firq;             // Fast Interrupt request, active high
 reg i_system_rdy;       // Amber is stalled when this is low
+reg globrst;
 
 // Wishbone Inputs
 reg [31:0] i_wb_dat;
@@ -33,7 +34,8 @@ a23_core UUT (
 	o_wb_cyc,
 	o_wb_stb,
 	i_wb_ack,
-	i_wb_err
+	i_wb_err,
+	globrst
 );
 
 initial begin
@@ -50,7 +52,12 @@ initial begin
 	i_firq <= 0;
 	i_wb_dat <= 0;
 	i_system_rdy <= 0;
-	repeat (10) @(posedge clk);
+	globrst <= 0;
+	repeat (5) @(posedge clk);
+	globrst <= 1;
+	repeat (2) @(posedge clk);
+	globrst <= 0;
+	repeat (3) @(posedge clk);
 	i_system_rdy <= 1;
 	repeat (5000) @(posedge clk);
 	$display("Reached limit of 5000 cpu cycles.");

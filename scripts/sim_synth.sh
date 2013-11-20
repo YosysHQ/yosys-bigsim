@@ -13,7 +13,13 @@ rm -f $design/gen/sim_synth.out
 		echo "read_verilog -I$design/rtl/ -I$design/sim/ $file"
 	done
 	echo "hierarchy -check -top $TOP"
-	echo "proc; opt; memory; opt; fsm; opt"
+	if $YOSYS_GLOBRST; then
+		echo "add -global_input globrst 1"
+		echo "proc -global_arst globrst"
+	else
+		echo "proc"
+	fi
+	echo "opt; memory; opt; fsm; opt"
 	if ! $YOSYS_COARSE; then
 		echo "techmap; opt; abc;;"
 	fi

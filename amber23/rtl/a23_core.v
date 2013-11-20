@@ -58,8 +58,10 @@ output      [31:0]          o_wb_dat,
 output                      o_wb_cyc,
 output                      o_wb_stb,
 input                       i_wb_ack,
-input                       i_wb_err
+input                       i_wb_err,
 
+// Global Reset
+input                       globrst
 );
 
 wire      [31:0]          execute_address;
