@@ -12,7 +12,11 @@ rm -f $design/gen/sim_synth.out
 	for file in $rtl_files; do
 		echo "read_verilog -I$design/rtl/ -I$design/sim/ $file"
 	done
-	echo "hierarchy -check -top $TOP"
+	if test -n "$TOP"; then
+		echo "hierarchy -check -top $TOP"
+	else
+		echo "hierarchy -check"
+	fi
 	if $YOSYS_GLOBRST; then
 		# insertation of global reset (e.g. for FPGA cores)
 		echo "add -global_input globrst 1"

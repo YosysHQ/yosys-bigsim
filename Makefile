@@ -2,7 +2,7 @@
 # staging:
 #   reed_solomon_decoder
 
-QUICK_DESIGNS = openmsp430 aes_5cycle_2stage softusb_navre verilog-pong
+QUICK_DESIGNS = openmsp430 aes_5cycle_2stage softusb_navre verilog-pong elliptic_curve_group
 DESIGNS = amber23 $(QUICK_DESIGNS)
 
 default:
