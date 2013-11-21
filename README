@@ -21,6 +21,9 @@ Currently included designs:
 	verilog-pong:
 		https://github.com/yzheng624/verilog-pong
 
+	reed_solomon_decoder:
+		http://opencores.org/project,reed_solomon_decoder
+
 
 Adding new designs to this collection:
 --------------------------------------

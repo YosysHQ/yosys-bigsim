@@ -1,4 +1,7 @@
 
+# staging:
+#   reed_solomon_decoder
+
 QUICK_DESIGNS = openmsp430 aes_5cycle_2stage softusb_navre verilog-pong
 DESIGNS = amber23 $(QUICK_DESIGNS)
 
