@@ -1,7 +1,16 @@
 
-DESIGNS = amber23 openmsp430 aes_5cycle_2stage softusb_navre verilog-pong
+QUICK_DESIGNS = openmsp430 aes_5cycle_2stage softusb_navre verilog-pong
+DESIGNS = amber23 $(QUICK_DESIGNS)
 
-all: $(addsuffix /gen/test.ok,$(DESIGNS)) 
+default:
+	@echo "Usage: make [-j8] { quick | full }"
+
+quick: $(addsuffix /gen/test.ok,$(QUICK_DESIGNS))
+	@echo ""
+	@echo "           ALL QUICK TESTS PASSED."
+	@echo ""
+
+full: $(addsuffix /gen/test.ok,$(DESIGNS)) 
 	@echo ""
 	@echo "           ALL TESTS PASSED."
 	@echo ""

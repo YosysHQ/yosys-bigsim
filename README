@@ -1,6 +1,6 @@
 
 A collection of larger designs to run post-synthesis simulations for testing
-yosys. Type 'make -j8' to run tests and use a max. of 8 parallel threads.
+yosys. Type 'make -j8 full' to run all tests and use max. 8 parallel threads.
 
 
 Currently included designs:
