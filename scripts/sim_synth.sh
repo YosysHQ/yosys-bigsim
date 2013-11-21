@@ -14,6 +14,7 @@ rm -f $design/gen/sim_synth.out
 	done
 	echo "hierarchy -check -top $TOP"
 	if $YOSYS_GLOBRST; then
+		# insertation of global reset (e.g. for FPGA cores)
 		echo "add -global_input globrst 1"
 		echo "proc -global_arst globrst"
 	else
@@ -21,9 +22,12 @@ rm -f $design/gen/sim_synth.out
 	fi
 	echo "opt; memory; opt; fsm; opt"
 	if ! $YOSYS_COARSE; then
-		echo "techmap; opt; abc;;"
+		# some simulations are just to slow on gate level
+		echo "techmap; opt; abc; clean"
 	fi
 	if $YOSYS_SPLITNETS; then
+		# icarus verilog has a performance problems when there are
+		# dependencies between the bits of a long vector
 		echo "splitnets; clean"
 	fi
 	if $YOSYS_COARSE; then
