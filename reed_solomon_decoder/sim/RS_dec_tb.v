@@ -2,8 +2,9 @@
 //`timescale 1 ns / 1 ps
 module testbench;
 
-parameter pclk = 5;     /// period of clk/2 
-parameter number = 10;  ///  number of input codewords
+parameter pclk = 5;         /// period of clk/2 
+parameter max_number = 10;  /// number of input codewords in file
+parameter number = 2;       /// number of input codewords to use
 
 reg clk,reset;
 reg CE;
@@ -27,8 +28,8 @@ RS_dec  DUT
 
 
 
-reg [7:0] in_mem [0:(number*204)-1];
-reg [7:0] out_mem [0:(number*188)-1];
+reg [7:0] in_mem [0:(max_number*204)-1];
+reg [7:0] out_mem [0:(max_number*188)-1];
 
 reg enable;
 reg [7:0]true_out;
@@ -128,6 +129,8 @@ begin
 			
 			if(h== (number*188) )
 				begin
+					if (h % 10 != 0)
+						$write("\n");
 					if (err == 0)
 						$display("Test OK.");
 					else
