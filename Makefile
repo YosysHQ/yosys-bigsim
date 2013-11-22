@@ -1,6 +1,6 @@
 
-QUICK_DESIGNS = openmsp430 aes_5cycle_2stage softusb_navre verilog-pong elliptic_curve_group
-DESIGNS = amber23 reed_solomon_decoder $(QUICK_DESIGNS)
+QUICK_DESIGNS = openmsp430 aes_5cycle_2stage softusb_navre verilog-pong
+DESIGNS = amber23 elliptic_curve_group reed_solomon_decoder $(QUICK_DESIGNS)
 
 default:
 	@echo "Usage: make [-j8] { quick | full }"
@@ -34,7 +34,7 @@ timing:
 		( set -x; time bash -c "bash scripts/sim_rtl.sh   $$d > /dev/null 2>&1" ); echo; \
 		( set -x; time bash -c "bash scripts/sim_synth.sh $$d > /dev/null 2>&1" ); echo; \
 	done; echo "--------------------------------------"; echo
-	$(MAKE) all
+	$(MAKE) full
 
 clean:
 	rm -rf */gen/
