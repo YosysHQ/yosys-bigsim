@@ -21,6 +21,138 @@ wire [31:0] o_wb_dat;
 wire        o_wb_cyc;
 wire        o_wb_stb;
 
+`ifdef A23_BIT_PORTS
+
+// Instructions for simulating ABC output:
+//
+//    Execute all commands in ../rtl/ directory
+//    Copy files 'amber23.ys' and 'adff2dff.v' from Yosys AppNote 010
+//
+//    yosys amber23.ys
+//    abc -c 'read_blif amber23.blif; strash -v; balance -v; refactor -v; write_verilog amber23.v'
+//
+//    MODELSIM_DIR=/opt/altera/13.1/modelsim_ase
+//    $MODELSIM_DIR/bin/vlib work
+//    $MODELSIM_DIR/bin/vlog amber23.v 
+//    $MODELSIM_DIR/bin/vlog +incdir+../sim +define+A23_BIT_PORTS ../sim/bench.v 
+//    $MODELSIM_DIR/bin/vsim -c -do "run -all; exit" work.testbench
+
+a23_core UUT (
+	.\clock        ( clk          ),
+	.\i_clk        ( clk          ),
+	.\i_irq        ( i_irq        ),
+	.\i_firq       ( i_firq       ),
+	.\i_system_rdy ( i_system_rdy ),
+	.\o_wb_adr[0]  ( o_wb_adr[0]  ),
+	.\o_wb_adr[1]  ( o_wb_adr[1]  ),
+	.\o_wb_adr[2]  ( o_wb_adr[2]  ),
+	.\o_wb_adr[3]  ( o_wb_adr[3]  ),
+	.\o_wb_adr[4]  ( o_wb_adr[4]  ),
+	.\o_wb_adr[5]  ( o_wb_adr[5]  ),
+	.\o_wb_adr[6]  ( o_wb_adr[6]  ),
+	.\o_wb_adr[7]  ( o_wb_adr[7]  ),
+	.\o_wb_adr[8]  ( o_wb_adr[8]  ),
+	.\o_wb_adr[9]  ( o_wb_adr[9]  ),
+	.\o_wb_adr[10] ( o_wb_adr[10] ),
+	.\o_wb_adr[11] ( o_wb_adr[11] ),
+	.\o_wb_adr[12] ( o_wb_adr[12] ),
+	.\o_wb_adr[13] ( o_wb_adr[13] ),
+	.\o_wb_adr[14] ( o_wb_adr[14] ),
+	.\o_wb_adr[15] ( o_wb_adr[15] ),
+	.\o_wb_adr[16] ( o_wb_adr[16] ),
+	.\o_wb_adr[17] ( o_wb_adr[17] ),
+	.\o_wb_adr[18] ( o_wb_adr[18] ),
+	.\o_wb_adr[19] ( o_wb_adr[19] ),
+	.\o_wb_adr[20] ( o_wb_adr[20] ),
+	.\o_wb_adr[21] ( o_wb_adr[21] ),
+	.\o_wb_adr[22] ( o_wb_adr[22] ),
+	.\o_wb_adr[23] ( o_wb_adr[23] ),
+	.\o_wb_adr[24] ( o_wb_adr[24] ),
+	.\o_wb_adr[25] ( o_wb_adr[25] ),
+	.\o_wb_adr[26] ( o_wb_adr[26] ),
+	.\o_wb_adr[27] ( o_wb_adr[27] ),
+	.\o_wb_adr[28] ( o_wb_adr[28] ),
+	.\o_wb_adr[29] ( o_wb_adr[29] ),
+	.\o_wb_adr[30] ( o_wb_adr[30] ),
+	.\o_wb_adr[31] ( o_wb_adr[31] ),
+	.\o_wb_sel[0]  ( o_wb_sel[0]  ),
+	.\o_wb_sel[1]  ( o_wb_sel[1]  ),
+	.\o_wb_sel[2]  ( o_wb_sel[2]  ),
+	.\o_wb_sel[3]  ( o_wb_sel[3]  ),
+	.\o_wb_we      ( o_wb_we      ),
+	.\i_wb_dat[0]  ( i_wb_dat[0]  ),
+	.\i_wb_dat[1]  ( i_wb_dat[1]  ),
+	.\i_wb_dat[2]  ( i_wb_dat[2]  ),
+	.\i_wb_dat[3]  ( i_wb_dat[3]  ),
+	.\i_wb_dat[4]  ( i_wb_dat[4]  ),
+	.\i_wb_dat[5]  ( i_wb_dat[5]  ),
+	.\i_wb_dat[6]  ( i_wb_dat[6]  ),
+	.\i_wb_dat[7]  ( i_wb_dat[7]  ),
+	.\i_wb_dat[8]  ( i_wb_dat[8]  ),
+	.\i_wb_dat[9]  ( i_wb_dat[9]  ),
+	.\i_wb_dat[10] ( i_wb_dat[10] ),
+	.\i_wb_dat[11] ( i_wb_dat[11] ),
+	.\i_wb_dat[12] ( i_wb_dat[12] ),
+	.\i_wb_dat[13] ( i_wb_dat[13] ),
+	.\i_wb_dat[14] ( i_wb_dat[14] ),
+	.\i_wb_dat[15] ( i_wb_dat[15] ),
+	.\i_wb_dat[16] ( i_wb_dat[16] ),
+	.\i_wb_dat[17] ( i_wb_dat[17] ),
+	.\i_wb_dat[18] ( i_wb_dat[18] ),
+	.\i_wb_dat[19] ( i_wb_dat[19] ),
+	.\i_wb_dat[20] ( i_wb_dat[20] ),
+	.\i_wb_dat[21] ( i_wb_dat[21] ),
+	.\i_wb_dat[22] ( i_wb_dat[22] ),
+	.\i_wb_dat[23] ( i_wb_dat[23] ),
+	.\i_wb_dat[24] ( i_wb_dat[24] ),
+	.\i_wb_dat[25] ( i_wb_dat[25] ),
+	.\i_wb_dat[26] ( i_wb_dat[26] ),
+	.\i_wb_dat[27] ( i_wb_dat[27] ),
+	.\i_wb_dat[28] ( i_wb_dat[28] ),
+	.\i_wb_dat[29] ( i_wb_dat[29] ),
+	.\i_wb_dat[30] ( i_wb_dat[30] ),
+	.\i_wb_dat[31] ( i_wb_dat[31] ),
+	.\o_wb_dat[0]  ( o_wb_dat[0]  ),
+	.\o_wb_dat[1]  ( o_wb_dat[1]  ),
+	.\o_wb_dat[2]  ( o_wb_dat[2]  ),
+	.\o_wb_dat[3]  ( o_wb_dat[3]  ),
+	.\o_wb_dat[4]  ( o_wb_dat[4]  ),
+	.\o_wb_dat[5]  ( o_wb_dat[5]  ),
+	.\o_wb_dat[6]  ( o_wb_dat[6]  ),
+	.\o_wb_dat[7]  ( o_wb_dat[7]  ),
+	.\o_wb_dat[8]  ( o_wb_dat[8]  ),
+	.\o_wb_dat[9]  ( o_wb_dat[9]  ),
+	.\o_wb_dat[10] ( o_wb_dat[10] ),
+	.\o_wb_dat[11] ( o_wb_dat[11] ),
+	.\o_wb_dat[12] ( o_wb_dat[12] ),
+	.\o_wb_dat[13] ( o_wb_dat[13] ),
+	.\o_wb_dat[14] ( o_wb_dat[14] ),
+	.\o_wb_dat[15] ( o_wb_dat[15] ),
+	.\o_wb_dat[16] ( o_wb_dat[16] ),
+	.\o_wb_dat[17] ( o_wb_dat[17] ),
+	.\o_wb_dat[18] ( o_wb_dat[18] ),
+	.\o_wb_dat[19] ( o_wb_dat[19] ),
+	.\o_wb_dat[20] ( o_wb_dat[20] ),
+	.\o_wb_dat[21] ( o_wb_dat[21] ),
+	.\o_wb_dat[22] ( o_wb_dat[22] ),
+	.\o_wb_dat[23] ( o_wb_dat[23] ),
+	.\o_wb_dat[24] ( o_wb_dat[24] ),
+	.\o_wb_dat[25] ( o_wb_dat[25] ),
+	.\o_wb_dat[26] ( o_wb_dat[26] ),
+	.\o_wb_dat[27] ( o_wb_dat[27] ),
+	.\o_wb_dat[28] ( o_wb_dat[28] ),
+	.\o_wb_dat[29] ( o_wb_dat[29] ),
+	.\o_wb_dat[30] ( o_wb_dat[30] ),
+	.\o_wb_dat[31] ( o_wb_dat[31] ),
+	.\o_wb_cyc     ( o_wb_cyc     ),
+	.\o_wb_stb     ( o_wb_stb     ),
+	.\i_wb_ack     ( i_wb_ack     ),
+	.\i_wb_err     ( i_wb_err     ),
+	.\globrst      ( globrst      )
+);
+
+`else
+
 a23_core UUT (
 	clk,
 	i_irq,
@@ -37,6 +169,8 @@ a23_core UUT (
 	i_wb_err,
 	globrst
 );
+
+`endif
 
 initial begin
 	clk <= 0;
