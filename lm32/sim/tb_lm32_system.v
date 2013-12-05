@@ -113,12 +113,8 @@ initial begin
 	for(i=0;i<'h4000;i=i+1) begin
 		mem_monitor_prog_rd[i] = 0;
 		mem_monitor_data_rd[i] = 0;
-		mem_monitor_data_wr[i] = 0;
+		mem_monitor_data_wr[i] = i >= 'h2000;
 	end
-	mem_monitor_data_rd['h8180 >> 2] = 1;
-	mem_monitor_data_rd['h8184 >> 2] = 1;
-	mem_monitor_data_wr['h8180 >> 2] = 1;
-	mem_monitor_data_wr['h8184 >> 2] = 1;
 end
 
 wire [31:0] dmem_dat_i;
