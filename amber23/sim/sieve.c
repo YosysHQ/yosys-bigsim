@@ -9,7 +9,7 @@
 #define BITMAP_SIZE 64
 #define OUTPORT 0x10000000
 
-static uint16_t bitmap[BITMAP_SIZE/32];
+static uint32_t bitmap[BITMAP_SIZE/32];
 
 static void bitmap_set(uint32_t idx)
 {
