@@ -18,6 +18,9 @@ Currently included designs:
 	amber23:
 		http://opencores.org/project,amber
 
+	lm32:
+		https://github.com/m-labs/lm32/
+
 	verilog-pong:
 		https://github.com/yzheng624/verilog-pong
 
