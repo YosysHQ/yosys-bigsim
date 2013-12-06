@@ -93,8 +93,10 @@ always #5 sys_clk = ~sys_clk;
 
 // reset
 initial begin
+	sys_rst = 1'b0;
+	repeat (10) @(posedge sys_clk);
 	sys_rst = 1'b1;
-	#20
+	repeat (10) @(posedge sys_clk);
 	sys_rst = 1'b0;
 end
 
@@ -111,9 +113,10 @@ reg mem_monitor_data_rd[0:'h4000];
 reg mem_monitor_data_wr[0:'h4000];
 initial begin
 	for(i=0;i<'h4000;i=i+1) begin
-		mem_monitor_prog_rd[i] = 0;
+		// print prog read (until icache is hot) and non-stack data writes
+		mem_monitor_prog_rd[i] = 1;
 		mem_monitor_data_rd[i] = 0;
-		mem_monitor_data_wr[i] = i >= 'h2000;
+		mem_monitor_data_wr[i] = i < 'h3000;
 	end
 end
 
@@ -360,6 +363,15 @@ always @(posedge sys_clk) begin
 		$fwrite(tracefd, "\n");
 		cycle = cycle + 1;
 	end
+end
+
+initial begin
+	// $dumpfile("bench.vcd");
+	// @(posedge sys_rst);
+	// repeat (5) @(posedge sys_clk);
+	// $dumpvars(0, testbench);
+	// repeat (1200) @(posedge sys_clk);
+	// $finish;
 end
 
 endmodule
