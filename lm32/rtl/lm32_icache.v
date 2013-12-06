@@ -267,7 +267,7 @@ genvar i;
               .write_clk                  (clk_i),
               .reset                      (rst_i),
               .read_address               (tmem_read_address),
-              .enable_read                (enable),
+              .enable_read                (enable | flushing),
               .write_address              (tmem_write_address),
               .enable_write               (`TRUE),
               .write_enable               (way_mem_we[i] | flushing),
@@ -403,9 +403,9 @@ begin
     begin
         state <= `LM32_IC_STATE_FLUSH_INIT;
         flush_set <= {`LM32_IC_TMEM_ADDR_WIDTH{1'b1}};
-        refill_address <= {`LM32_PC_WIDTH{1'bx}};
+        refill_address <= {`LM32_PC_WIDTH{1'b0}};
 `ifdef CFG_MMU_ENABLED
-        physical_refill_address <= {`LM32_PC_WIDTH{1'bx}};
+        physical_refill_address <= {`LM32_PC_WIDTH{1'b0}};
 `endif
         restart_request <= `FALSE;
     end

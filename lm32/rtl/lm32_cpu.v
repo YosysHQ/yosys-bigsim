@@ -2139,7 +2139,7 @@ assign write_enable_q_x = (write_enable_x == `TRUE) && (valid_x == `TRUE) && (br
 assign write_enable_q_m = (write_enable_m == `TRUE) && (valid_m == `TRUE);
 assign write_enable_q_w = (write_enable_w == `TRUE) && (valid_w == `TRUE);
 // The enable that actually does write the registers needs to be qualified with kill
-assign reg_write_enable_q_w = (write_enable_w == `TRUE) && (kill_w == `FALSE) && (valid_w == `TRUE);
+assign reg_write_enable_q_w = (write_enable_w == `TRUE) && (kill_w == `FALSE) && (valid_w == `TRUE) || rst_i;
 
 // Configuration (CFG) CSR
 assign cfg = {
