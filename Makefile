@@ -1,6 +1,6 @@
 
 QUICK_DESIGNS = openmsp430 aes_5cycle_2stage softusb_navre verilog-pong
-DESIGNS = amber23 elliptic_curve_group reed_solomon_decoder $(QUICK_DESIGNS)
+DESIGNS = amber23 lm32 elliptic_curve_group reed_solomon_decoder $(QUICK_DESIGNS)
 
 default:
 	@echo "Usage: make [-j8] { quick | full }"
