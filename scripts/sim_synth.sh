@@ -27,7 +27,7 @@ rm -f $design/gen/sim_synth.out
 	echo "opt; memory; opt; fsm; opt"
 	if ! $YOSYS_COARSE; then
 		# some simulations are just to slow on gate level
-		echo "techmap; opt; abc; clean"
+		echo "techmap; opt; abc -dff; clean"
 	fi
 	if $YOSYS_SPLITNETS; then
 		# icarus verilog has a performance problems when there are
@@ -37,6 +37,7 @@ rm -f $design/gen/sim_synth.out
 	if $YOSYS_COARSE; then
 		echo "write_verilog -noexpr -noattr $design/gen/synth.v"
 	else
+		echo "select -assert-none t:\$[!_]"
 		echo "write_verilog -noattr $design/gen/synth.v"
 	fi
 } > $design/gen/synth.ys
