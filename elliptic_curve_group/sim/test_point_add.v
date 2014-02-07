@@ -177,7 +177,7 @@ module test_point_add(input start, output reg stop = 0);
 	task go;
       begin
     	@ (negedge clk); reset = 1; @ (negedge clk); reset = 0;
-        @ (posedge done);
+	while (done == 0) begin @(posedge done); #1; end
       end
 	endtask
 endmodule

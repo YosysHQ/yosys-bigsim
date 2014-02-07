@@ -124,7 +124,7 @@ module test_point_scalar_mult(input start, output reg stop = 0);
     task go;
       begin
         @ (negedge clk); reset = 1; @ (negedge clk); reset = 0;
-        @ (posedge done); #5 ;
+	while (done == 0) begin @(posedge done); #1; end
       end
     endtask
 endmodule
