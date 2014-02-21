@@ -27,5 +27,5 @@ miter -equiv gold gate miter
 
 cd miter
 flatten; opt -undriven
-sat -verify -prove trigger 0
+sat -dump_cnf equiv.cnf -verify -prove trigger 0
 
