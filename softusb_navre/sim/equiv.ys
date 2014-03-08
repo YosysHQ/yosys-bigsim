@@ -1,4 +1,7 @@
 
+# read_verilog ../../../yosys/tests/simple/fiedler-cooley.v
+# rename up3down5 softusb_navre
+
 read_verilog ../rtl/softusb_navre.v
 hierarchy -check -top softusb_navre
 
@@ -9,6 +12,7 @@ cd ..
 copy softusb_navre gold
 
 cd softusb_navre
+# freduce -v
 techmap; opt; abc;;
 cd ..
 
