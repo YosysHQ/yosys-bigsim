@@ -47,6 +47,11 @@ if $YOSYS_COARSE; then
 	sim_files="$sim_files $( yosys-config --datdir/simlib.v )"
 fi
 
+if [ $design = bch_verilog ]; then
+	# https://github.com/steveicarus/iverilog/issues/28
+	sed -i 's,OPTION="SERIAL",OPTION=SERIAL,g' $design/gen/synth.v
+fi
+
 iverilog -s testbench -o $design/gen/sim_synth -I$design/rtl/ -I$design/sim/ $design/gen/synth.v $sim_files
 vvp -n -l $design/gen/sim_synth.out $design/gen/sim_synth
 

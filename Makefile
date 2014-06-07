@@ -1,5 +1,5 @@
 
-QUICK_DESIGNS = openmsp430 aes_5cycle_2stage softusb_navre verilog-pong
+QUICK_DESIGNS = openmsp430 aes_5cycle_2stage softusb_navre verilog-pong bch_verilog
 DESIGNS = amber23 lm32 elliptic_curve_group reed_solomon_decoder $(QUICK_DESIGNS)
 
 default:

@@ -30,6 +30,9 @@ Currently included designs:
 	reed_solomon_decoder:
 		http://opencores.org/project,reed_solomon_decoder
 
+	bch_verilog:
+		https://github.com/russdill/bch_verilog
+
 
 Adding new designs to this collection:
 --------------------------------------
