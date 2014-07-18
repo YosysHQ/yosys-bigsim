@@ -55,22 +55,6 @@ input      [DATA_WIDTH/8-1:0]   i_byte_enable,
 output reg [DATA_WIDTH-1:0]     o_read_data
     );                                                     
 
-`ifndef __USE_ORIGINAL_AMBER_SRAM_CODE__
-
-genvar i;
-generate
-	for (i = 0; i < DATA_WIDTH/8; i = i+1) begin:memslice
-		reg [7:0] mem [0:2**ADDRESS_WIDTH-1];
-		always @(posedge i_clk) begin
-			o_read_data[8*i +: 8] <= i_write_enable ? 8'b0 : mem[i_address];
-			if (i_write_enable && i_byte_enable[i])
-				mem[i_address] <= i_write_data[8*i +: 8];
-		end
-	end
-endgenerate
-
-`else
-
 reg [DATA_WIDTH-1:0]   mem  [0:2**ADDRESS_WIDTH-1];
 integer i;
 
@@ -93,8 +77,6 @@ always @(posedge i_clk)
             mem[i_address][i*8+7] <= i_byte_enable[i] ? i_write_data[i*8+7] : mem[i_address][i*8+7] ;
             end                                                 
     end
-
-`endif    
 
 endmodule
 
