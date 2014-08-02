@@ -88,6 +88,8 @@ end
 
 ///////////////////// inputs///////////////
 
+reg write_input_progress = 1;
+
 initial 
 begin
 
@@ -97,6 +99,12 @@ begin
 
 	for(k=0;k<(number*204);k=k+1)
 	begin
+		if (write_input_progress) begin
+			if (k % 50 == 0 && k != 0)
+				$write("\n");
+			$write(".");
+			$fflush;
+		end
 
 		input_byte=in_mem[k];
 		
@@ -114,8 +122,13 @@ begin
 		begin
 			true_out = out_mem[h];
 
+			if (write_input_progress) begin
+				write_input_progress = 0;
+				$write("\n");
+			end
+
 			if (h % 10 == 0)
-				$write("%d", h);
+				$write("%d ", h);
 			$write(" %x %x", true_out, Out_byte);
 			if (h % 10 == 9)
 				$write("\n");
