@@ -259,7 +259,7 @@ always @(posedge clk) begin
 		pX = 16'd0;
 		pY = 16'd0;
 		pZ = 16'd0;
-		// synthesis translate_on
+		// *not* synthesis translate_on
 		T = 1'b0;
 		H = 1'b0;
 		S = 1'b0;
