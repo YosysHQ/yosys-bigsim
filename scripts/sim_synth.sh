@@ -28,7 +28,7 @@ rm -f $design/gen/sim_synth.out
 		# some simulations are just to slow on gate level
 		echo "opt; wreduce; share; opt; fsm; opt; memory;;"
 	else
-		echo "synth -run coarse; opt -fine"
+		echo "synth -run coarse; opt -fine; memory_map"
 		echo "techmap; opt; abc -dff; clean"
 	fi
 	if $YOSYS_SPLITNETS; then
