@@ -1,5 +1,5 @@
 /*
- * Milkymist VJ SoC
+ * Milkymist SoC
  * Copyright (C) 2007, 2008, 2009, 2010 Sebastien Bourdeauducq
  *
  * This program is free software: you can redistribute it and/or modify
@@ -35,7 +35,12 @@ module softusb_navre #(
 	output reg io_we,
 	output [5:0] io_a,
 	output [7:0] io_do,
-	input [7:0] io_di
+	input [7:0] io_di,
+
+	input [7:0] irq,
+	output reg [7:0] irq_ack,
+
+	output reg [pmem_width-1:0] dbg_pc
 );
 
 /* Register file */
@@ -45,7 +50,7 @@ reg [15:0] U;	/* < R24-R25 */
 reg [15:0] pX;	/* < R26-R27 */
 reg [15:0] pY;	/* < R28-R29 */
 reg [15:0] pZ;	/* < R30-R31 */
-reg T, H, S, V, N, Z, C;
+reg I, T, H, S, V, N, Z, C;
 
 /* Stack */
 reg [7:0] io_sp;
@@ -77,9 +82,9 @@ end
 
 /* I/O mapped registers */
 
-parameter IO_SEL_EXT	= 2'd0;
-parameter IO_SEL_STACK	= 2'd1;
-parameter IO_SEL_SREG	= 2'd2;
+localparam IO_SEL_EXT	= 2'd0;
+localparam IO_SEL_STACK	= 2'd1;
+localparam IO_SEL_SREG	= 2'd2;
 
 reg [1:0] io_sel;
 always @(posedge clk) begin
@@ -168,14 +173,73 @@ end
 
 reg [3:0] pc_sel;
 
-parameter PC_SEL_NOP		= 4'd0;
-parameter PC_SEL_INC		= 4'd1;
-parameter PC_SEL_KL		= 4'd2;
-parameter PC_SEL_KS		= 4'd3;
-parameter PC_SEL_DMEML		= 4'd4;
-parameter PC_SEL_DMEMH		= 4'd6;
-parameter PC_SEL_DEC		= 4'd7;
-parameter PC_SEL_Z		= 4'd8;
+localparam PC_SEL_NOP		= 4'd0;
+localparam PC_SEL_INC		= 4'd1;
+localparam PC_SEL_KL		= 4'd2;
+localparam PC_SEL_KS		= 4'd3;
+localparam PC_SEL_DMEML		= 4'd4;
+localparam PC_SEL_DMEMH		= 4'd6;
+localparam PC_SEL_DEC		= 4'd7;
+localparam PC_SEL_Z		= 4'd8;
+localparam PC_SEL_EX		= 4'd9;
+
+/* Exceptions */
+
+reg [7:0] next_irq_ack;
+always @(*) begin
+	next_irq_ack = 8'b0;
+	casex(irq)
+		8'bxxxx_xxx1: next_irq_ack = 8'b0000_0001;
+		8'bxxxx_xx10: next_irq_ack = 8'b0000_0010;
+		8'bxxxx_x100: next_irq_ack = 8'b0000_0100;
+		8'bxxxx_1000: next_irq_ack = 8'b0000_1000;
+		8'bxxx1_0000: next_irq_ack = 8'b0001_0000;
+		8'bxx10_0000: next_irq_ack = 8'b0010_0000;
+		8'bx100_0000: next_irq_ack = 8'b0100_0000;
+		8'b1000_0000: next_irq_ack = 8'b1000_0000;
+	endcase
+end
+
+reg irq_ack_en;
+always @(posedge clk) begin
+	if(rst)
+		irq_ack <= 8'b0;
+	else begin
+		irq_ack <= 1'b0;
+		if(irq_ack_en)
+			irq_ack <= next_irq_ack;
+	end
+end
+
+/* Priority encoder */
+
+reg [3:0] PC_ex;
+always @(*) begin
+	PC_ex = 4'b0;
+	casex(irq)
+		8'bxxxx_xxx1: PC_ex = 4'h0;
+		8'bxxxx_xx10: PC_ex = 4'h1;
+		8'bxxxx_x100: PC_ex = 4'h2;
+		8'bxxxx_1000: PC_ex = 4'h3;
+		8'bxxx1_0000: PC_ex = 4'h4;
+		8'bxx10_0000: PC_ex = 4'h5;
+		8'bx100_0000: PC_ex = 4'h6;
+		8'b1000_0000: PC_ex = 4'h7;
+	endcase
+end
+
+/* AVR cores always execute at least one instruction after an IRET.
+ * Therefore, the I bit is only valid one clock after it has been set. */
+
+reg I_r;
+always @(posedge clk) begin
+	if(rst)
+		I_r <= 1'b0;
+	else
+		I_r <= I;
+end
+wire irq_asserted = |irq;
+wire irq_request = I & I_r & irq_asserted;
 
 always @(posedge clk) begin
 	if(rst) begin
@@ -193,8 +257,10 @@ always @(posedge clk) begin
 			PC_SEL_DMEMH: PC[pmem_width-1:8] <= dmem_di;
 			PC_SEL_DEC: PC <= PC - 1;
 			PC_SEL_Z: PC <= pZ - 1;
+			PC_SEL_EX: PC <= {{pmem_width-4{1'b0}}, PC_ex};
 		endcase
 	end
+	dbg_pc <= PC;
 end
 reg pmem_selz;
 assign pmem_a = rst ?
@@ -208,20 +274,20 @@ assign pmem_a = rst ?
 /* Load/store operations */
 reg [3:0] dmem_sel;
 
-parameter DMEM_SEL_UNDEFINED	= 4'bx;
-parameter DMEM_SEL_X		= 4'd0;
-parameter DMEM_SEL_XPLUS	= 4'd1;
-parameter DMEM_SEL_XMINUS	= 4'd2;
-parameter DMEM_SEL_YPLUS	= 4'd3;
-parameter DMEM_SEL_YMINUS	= 4'd4;
-parameter DMEM_SEL_YQ		= 4'd5;
-parameter DMEM_SEL_ZPLUS	= 4'd6;
-parameter DMEM_SEL_ZMINUS	= 4'd7;
-parameter DMEM_SEL_ZQ		= 4'd8;
-parameter DMEM_SEL_SP_R		= 4'd9;
-parameter DMEM_SEL_SP_PCL	= 4'd10;
-parameter DMEM_SEL_SP_PCH	= 4'd11;
-parameter DMEM_SEL_PMEM		= 4'd12;
+localparam DMEM_SEL_UNDEFINED	= 3'bxxx;
+localparam DMEM_SEL_X		= 4'd0;
+localparam DMEM_SEL_XPLUS	= 4'd1;
+localparam DMEM_SEL_XMINUS	= 4'd2;
+localparam DMEM_SEL_YPLUS	= 4'd3;
+localparam DMEM_SEL_YMINUS	= 4'd4;
+localparam DMEM_SEL_YQ		= 4'd5;
+localparam DMEM_SEL_ZPLUS	= 4'd6;
+localparam DMEM_SEL_ZMINUS	= 4'd7;
+localparam DMEM_SEL_ZQ		= 4'd8;
+localparam DMEM_SEL_SP_R	= 4'd9;
+localparam DMEM_SEL_SP_PCL	= 4'd10;
+localparam DMEM_SEL_SP_PCH	= 4'd11;
+localparam DMEM_SEL_PMEM	= 4'd12;
 
 /* ALU */
 
@@ -230,19 +296,25 @@ reg lds_writeback;
 
 wire [4:0] write_dest = lds_writeback ? Rd_r : Rd;
 
-// *not* synthesis translate_off
+`define INIT_REGS
+`ifdef INIT_REGS
 integer i_rst_regf;
-// synthesis translate_on
+`endif
 reg [7:0] R;
 reg writeback;
-reg update_nsz;
+reg update_svnz;
 reg change_z;
 reg [15:0] R16;
 reg mode16;
+reg _N;
+reg _V;
+reg _C;
+reg I_clr;
+reg I_set;
 always @(posedge clk) begin
 	R = 8'hxx;
 	writeback = 1'b0;
-	update_nsz = 1'b0;
+	update_svnz = 1'b0;
 	change_z = 1'b1;
 	R16 = 16'hxxxx;
 	mode16 = 1'b0;
@@ -252,39 +324,47 @@ always @(posedge clk) begin
 		 * Not resetting the register file enables the use of more efficient
 		 * distributed block RAM.
 		 */
-		// *not* synthesis translate_off
+`ifdef INIT_REGS
 		for(i_rst_regf=0;i_rst_regf<24;i_rst_regf=i_rst_regf+1)
-			GPR[i_rst_regf] = 8'd0;
-		U = 16'd0;
-		pX = 16'd0;
-		pY = 16'd0;
-		pZ = 16'd0;
-		// *not* synthesis translate_on
-		T = 1'b0;
-		H = 1'b0;
-		S = 1'b0;
-		V = 1'b0;
-		N = 1'b0;
-		Z = 1'b0;
-		C = 1'b0;
+			GPR[i_rst_regf] <= 8'd0;
+		U <= 16'd0;
+		pX <= 16'd0;
+		pY <= 16'd0;
+		pZ <= 16'd0;
+`endif
+		I <= 1'b0;
+		T <= 1'b0;
+		H <= 1'b0;
+		S <= 1'b0;
+		V <= 1'b0;
+		N <= 1'b0;
+		Z <= 1'b0;
+		C <= 1'b0;
+		_V = 1'b0;
+		_N = 1'b0;
+		_C = 1'b0;
 `endif
 	end else begin
+		if(I_set)
+			I <= 1'b1;
 		if(normal_en) begin
 			writeback = 1'b1;
-			update_nsz = 1'b1;
+			update_svnz = 1'b1;
 			casex(pmem_d)
 				16'b000x_11xx_xxxx_xxxx: begin
 					/* ADD - ADC */
-					{C, R} = GPR_Rd + GPR_Rr + (pmem_d[12] & C);
-					H = (GPR_Rd[3] & GPR_Rr[3])|(GPR_Rr[3] & ~R[3])|(~R[3] & GPR_Rd[3]);
-					V = (GPR_Rd[7] & GPR_Rr[7] & ~R[7])|(~GPR_Rd[7] & ~GPR_Rr[7] & R[7]);
+					{_C, R} = GPR_Rd + GPR_Rr + (pmem_d[12] & C);
+					C <= _C;
+					H <= (GPR_Rd[3] & GPR_Rr[3])|(GPR_Rr[3] & ~R[3])|(~R[3] & GPR_Rd[3]);
+					_V = (GPR_Rd[7] & GPR_Rr[7] & ~R[7])|(~GPR_Rd[7] & ~GPR_Rr[7] & R[7]);
 				end
 				16'b000x_10xx_xxxx_xxxx, /* subtract */
 				16'b000x_01xx_xxxx_xxxx: /* compare  */ begin
 					/* SUB - SBC / CP - CPC */
-					{C, R} = GPR_Rd - GPR_Rr - (~pmem_d[12] & C);
-					H = (~GPR_Rd[3] & GPR_Rr[3])|(GPR_Rr[3] & R[3])|(R[3] & ~GPR_Rd[3]);
-					V = (GPR_Rd[7] & ~GPR_Rr[7] & ~R[7])|(~GPR_Rd[7] & GPR_Rr[7] & R[7]);
+					{_C, R} = GPR_Rd - GPR_Rr - (~pmem_d[12] & C);
+					C <= _C;
+					H <= (~GPR_Rd[3] & GPR_Rr[3])|(GPR_Rr[3] & R[3])|(R[3] & ~GPR_Rd[3]);
+					_V = (GPR_Rd[7] & ~GPR_Rr[7] & ~R[7])|(~GPR_Rd[7] & GPR_Rr[7] & R[7]);
 					if(~pmem_d[12])
 						change_z = 1'b0;
 					writeback = pmem_d[11];
@@ -292,9 +372,10 @@ always @(posedge clk) begin
 				16'b010x_xxxx_xxxx_xxxx, /* subtract */
 				16'b0011_xxxx_xxxx_xxxx: /* compare  */ begin
 					/* SUBI - SBCI / CPI */
-					{C, R} = GPR_Rd - K - (~pmem_d[12] & C);
-					H = (~GPR_Rd[3] & K[3])|(K[3] & R[3])|(R[3] & ~GPR_Rd[3]);
-					V = (GPR_Rd[7] & ~K[7] & ~R[7])|(~GPR_Rd[7] & K[7] & R[7]);
+					{_C, R} = GPR_Rd - K - (~pmem_d[12] & C);
+					C <= _C;
+					H <= (~GPR_Rd[3] & K[3])|(K[3] & R[3])|(R[3] & ~GPR_Rd[3]);
+					_V = (GPR_Rd[7] & ~K[7] & ~R[7])|(~GPR_Rd[7] & K[7] & R[7]);
 					if(~pmem_d[12])
 						change_z = 1'b0;
 					writeback = pmem_d[14];
@@ -302,98 +383,103 @@ always @(posedge clk) begin
 				16'b0010_00xx_xxxx_xxxx: begin
 					/* AND */
 					R = GPR_Rd & GPR_Rr;
-					V = 1'b0;
+					_V = 1'b0;
 				end
 				16'b0111_xxxx_xxxx_xxxx: begin
 					/* ANDI */
 					R = GPR_Rd & K;
-					V = 1'b0;
+					_V = 1'b0;
 				end
 				16'b0010_10xx_xxxx_xxxx: begin
 					/* OR */
 					R = GPR_Rd | GPR_Rr;
-					V = 1'b0;
+					_V = 1'b0;
 				end
 				16'b0110_xxxx_xxxx_xxxx: begin
 					/* ORI */
 					R = GPR_Rd | K;
-					V = 1'b0;
+					_V = 1'b0;
 				end
 				16'b0010_01xx_xxxx_xxxx: begin
 					/* EOR */
 					R = GPR_Rd ^ GPR_Rr;
-					V = 1'b0;
+					_V = 1'b0;
 				end
 				16'b1001_010x_xxxx_0000: begin
 					/* COM */
 					R = ~GPR_Rd;
-					V = 1'b0;
-					C = 1'b1;
+					_V = 1'b0;
+					C <= 1'b1;
 				end
 				16'b1001_010x_xxxx_0001: begin
 					/* NEG */
-					{C, R} = 8'h00 - GPR_Rd;
-					H = R[3] | GPR_Rd[3];
-					V = R == 8'h80;
+					{_C, R} = 8'h00 - GPR_Rd;
+					C <= _C;
+					H <= R[3] | GPR_Rd[3];
+					_V = R == 8'h80;
 				end
 				16'b1001_010x_xxxx_0011: begin
 					/* INC */
 					R = GPR_Rd + 8'd1;
-					V = R == 8'h80;
+					_V = R == 8'h80;
 				end
 				16'b1001_010x_xxxx_1010: begin
 					/* DEC */
 					R = GPR_Rd - 8'd1;
-					V = R == 8'h7f;
+					_V = R == 8'h7f;
 				end
 				16'b1001_010x_xxxx_011x: begin
 					/* LSR - ROR */
 					R = {pmem_d[0] & C, GPR_Rd[7:1]};
-					C = GPR_Rd[0];
-					V = R[7] ^ GPR_Rd[0];
+					C <= GPR_Rd[0];
+					_V = R[7] ^ GPR_Rd[0];
 				end
 				16'b1001_010x_xxxx_0101: begin
 					/* ASR */
 					R = {GPR_Rd[7], GPR_Rd[7:1]};
-					C = GPR_Rd[0];
-					V = R[7] ^ GPR_Rd[0];
+					C <= GPR_Rd[0];
+					_V = R[7] ^ GPR_Rd[0];
 				end
 				16'b1001_010x_xxxx_0010: begin
 					/* SWAP */
 					R = {GPR_Rd[3:0], GPR_Rd[7:4]};
-					update_nsz = 1'b0;
+					update_svnz = 1'b0;
 				end
 				16'b1001_010x_xxxx_1000: begin
 					/* BSET - BCLR */
 					case(pmem_d[7:4])
-						4'b0000: C = 1'b1;
-						4'b0001: Z = 1'b1;
-						4'b0010: N = 1'b1;
-						4'b0011: V = 1'b1;
-						4'b0100: S = 1'b1;
-						4'b0101: H = 1'b1;
-						4'b0110: T = 1'b1;
-						4'b1000: C = 1'b0;
-						4'b1001: Z = 1'b0;
-						4'b1010: N = 1'b0;
-						4'b1011: V = 1'b0;
-						4'b1100: S = 1'b0;
-						4'b1101: H = 1'b0;
-						4'b1110: T = 1'b0;
+						4'b0000: C <= 1'b1;
+						4'b0001: Z <= 1'b1;
+						4'b0010: N <= 1'b1;
+						4'b0011: V <= 1'b1;
+						4'b0100: S <= 1'b1;
+						4'b0101: H <= 1'b1;
+						4'b0110: T <= 1'b1;
+						4'b0111: I <= 1'b1;
+						4'b1000: C <= 1'b0;
+						4'b1001: Z <= 1'b0;
+						4'b1010: N <= 1'b0;
+						4'b1011: V <= 1'b0;
+						4'b1100: S <= 1'b0;
+						4'b1101: H <= 1'b0;
+						4'b1110: T <= 1'b0;
+						4'b1111: I <= 1'b0;
 					endcase
-					update_nsz = 1'b0;
+					update_svnz = 1'b0;
 					writeback = 1'b0;
 				end
 				16'b1001_011x_xxxx_xxxx: begin
 					mode16 = 1'b1;
 					if(pmem_d[8]) begin
 						/* SBIW */
-						{C, R16} = GPR_Rd16 - K16;
-						V = GPR_Rd16[15] & ~R16[15];
+						{_C, R16} = GPR_Rd16 - K16;
+						C <= _C;
+						_V = GPR_Rd16[15] & ~R16[15];
 					end else begin
 						/* ADIW */
-						{C, R16} = GPR_Rd16 + K16;
-						V = ~GPR_Rd16[15] & R16[15];
+						{_C, R16} = GPR_Rd16 + K16;
+						C <= _C;
+						_V = ~GPR_Rd16[15] & R16[15];
 					end
 				end
 				/* SBR and CBR are replaced with ORI and ANDI */
@@ -402,19 +488,19 @@ always @(posedge clk) begin
 				16'b0010_11xx_xxxx_xxxx: begin
 					/* MOV */
 					R = GPR_Rr;
-					update_nsz = 1'b0;
+					update_svnz = 1'b0;
 				end
 				16'b1110_xxxx_xxxx_xxxx: begin
 					/* LDI */
 					R = K;
-					update_nsz = 1'b0;
+					update_svnz = 1'b0;
 				end
 				/* LSL is replaced with ADD */
 				/* ROL is replaced with ADC */
 				16'b1111_10xx_xxxx_0xxx: begin
 					if(pmem_d[9]) begin
 						/* BST */
-						T = GPR_Rd_b;
+						T <= GPR_Rd_b;
 						writeback = 1'b0;
 					end else begin
 						/* BLD */
@@ -429,13 +515,13 @@ always @(posedge clk) begin
 							3'd7: R = {T, GPR_Rd[6:0]};
 						endcase
 					end
-					update_nsz = 1'b0;
+					update_svnz = 1'b0;
 				end
 				/* SEC, CLC, SEN, CLN, SEZ, CLZ, SEI, CLI, SES, CLS, SEV, CLV, SET, CLT, SEH, CLH
 				 * are replaced with BSET and BCLR */
 				16'b0000_0000_0000_0000: begin
 					/* NOP */
-					update_nsz = 1'b0;
+					update_svnz = 1'b0;
 					writeback = 1'b0;
 				end
 				/* SLEEP is not implemented */
@@ -453,17 +539,17 @@ always @(posedge clk) begin
 				begin
 					/* LD - POP (run from state WRITEBACK) */
 					R = dmem_di;
-					update_nsz = 1'b0;
+					update_svnz = 1'b0;
 				end
 				16'b1011_0xxx_xxxx_xxxx: begin
 					/* IN (run from state WRITEBACK) */
 					case(io_sel)
 						IO_SEL_EXT: R = io_di;
 						IO_SEL_STACK: R = io_sp;
-						IO_SEL_SREG: R = {1'b0, T, H, S, V, N, Z, C};
+						IO_SEL_SREG: R = {I, T, H, S, V, N, Z, C};
 						default: R = 8'hxx;
 					endcase
-					update_nsz = 1'b0;
+					update_svnz = 1'b0;
 				end
 			endcase
 		end /* if(normal_en) */
@@ -475,48 +561,48 @@ always @(posedge clk) begin
 			R = pZ[0] ? pmem_d[15:8] : pmem_d[7:0];
 			writeback = 1'b1;
 		end
-		if(update_nsz) begin
-			N = mode16 ? R16[15] : R[7];
-			S = N ^ V;
-			Z = mode16 ? R16 == 16'h0000 : ((R == 8'h00) & (change_z|Z));
+		if(update_svnz) begin
+			_N = mode16 ? R16[15] : R[7];
+			S <= _N ^ _V;
+			V <= _V;
+			N <= _N;
+			Z <= mode16 ? R16 == 16'h0000 : ((R == 8'h00) & (change_z|Z));
 		end
 		if(io_we & (io_a == 6'b111111))
-			{T, H, S, V, N, Z, C} = io_do[6:0];
+			{I, T, H, S, V, N, Z, C} <= io_do[7:0];
+		if(I_clr)
+			I <= 1'b0;
 		if(writeback) begin
 			if(mode16) begin
-				// synthesis translate_off
-				//$display("REG WRITE(16): %d < %d", Rd16, R16);
-				// synthesis translate_on
+				// $display("REG WRITE(16): %d < %d", Rd16, R16);
 				case(Rd16)
-					2'd0: U = R16;
-					2'd1: pX = R16;
-					2'd2: pY = R16;
-					2'd3: pZ = R16;
+					2'd0: U <= R16;
+					2'd1: pX <= R16;
+					2'd2: pY <= R16;
+					2'd3: pZ <= R16;
 				endcase
 			end else begin
-				// synthesis translate_off
-				//$display("REG WRITE: %d < %d", Rd, R);
-				// synthesis translate_on
+				// $display("REG WRITE: %d < %d", Rd, R);
 				case(write_dest)
-					default: GPR[write_dest] = R;
-					5'd24: U[7:0] = R;
-					5'd25: U[15:8] = R;
-					5'd26: pX[7:0] = R;
-					5'd27: pX[15:8] = R;
-					5'd28: pY[7:0] = R;
-					5'd29: pY[15:8] = R;
-					5'd30: pZ[7:0] = R;
-					5'd31: pZ[15:8] = R;
+					default: GPR[write_dest] <= R;
+					5'd24: U[7:0] <= R;
+					5'd25: U[15:8] <= R;
+					5'd26: pX[7:0] <= R;
+					5'd27: pX[15:8] <= R;
+					5'd28: pY[7:0] <= R;
+					5'd29: pY[15:8] <= R;
+					5'd30: pZ[7:0] <= R;
+					5'd31: pZ[15:8] <= R;
 				endcase
 			end
 		end else begin /* if(writeback) */
 			case(dmem_sel)
-				DMEM_SEL_XPLUS:		pX = pX + 16'd1;
-				DMEM_SEL_XMINUS:	pX = pX - 16'd1;
-				DMEM_SEL_YPLUS:		pY = pY + 16'd1;
-				DMEM_SEL_YMINUS:	pY = pY - 16'd1;
-				DMEM_SEL_ZPLUS:		pZ = pZ + 16'd1;
-				DMEM_SEL_ZMINUS:	pZ = pZ - 16'd1;
+				DMEM_SEL_XPLUS:		pX <= pX + 16'd1;
+				DMEM_SEL_XMINUS:	pX <= pX - 16'd1;
+				DMEM_SEL_YPLUS:		pY <= pY + 16'd1;
+				DMEM_SEL_YMINUS:	pY <= pY - 16'd1;
+				DMEM_SEL_ZPLUS:		pZ <= pZ + 16'd1;
+				DMEM_SEL_ZMINUS:	pZ <= pZ - 16'd1;
 				default:;
 			endcase
 		end
@@ -548,6 +634,7 @@ always @(*) begin
 end
 
 wire [pmem_width-1:0] PC_inc = PC + 1;
+reg exception;
 always @(*) begin
 	case(dmem_sel)
 		DMEM_SEL_X,
@@ -560,8 +647,8 @@ always @(*) begin
 		DMEM_SEL_ZMINUS,
 		DMEM_SEL_ZQ,
 		DMEM_SEL_SP_R:		dmem_do = GPR_Rd;
-		DMEM_SEL_SP_PCL:	dmem_do = PC_inc[7:0];
-		DMEM_SEL_SP_PCH:	dmem_do = PC_inc[pmem_width-1:8];
+		DMEM_SEL_SP_PCL:	dmem_do = exception ? PC[7:0] : PC_inc[7:0];
+		DMEM_SEL_SP_PCH:	dmem_do = exception ? PC[pmem_width-1:8] : PC_inc[pmem_width-1:8];
 		DMEM_SEL_PMEM:		dmem_do = GPR_Rd_r;
 		default:		dmem_do = 8'hxx;
 	endcase
@@ -581,26 +668,31 @@ always @(*) begin
 		3'd4: sreg_read = S;
 		3'd5: sreg_read = H;
 		3'd6: sreg_read = T;
-		3'd7: sreg_read = 1'b0;
+		3'd7: sreg_read = I;
 	endcase
 end
 
-reg [3:0] state;
-reg [3:0] next_state;
+reg [4:0] state;
+reg [4:0] next_state;
 
-parameter NORMAL	= 4'd0;
-parameter RCALL		= 4'd1;
-parameter ICALL		= 4'd2;
-parameter STALL		= 4'd3;
-parameter RET1		= 4'd4;
-parameter RET2		= 4'd5;
-parameter RET3		= 4'd6;
-parameter LPM		= 4'd7;
-parameter STS		= 4'd8;
-parameter LDS1		= 4'd9;
-parameter LDS2		= 4'd10;
-parameter SKIP		= 4'd11;
-parameter WRITEBACK	= 4'd12;
+localparam NORMAL	= 5'd0;
+localparam RCALL	= 5'd1;
+localparam ICALL	= 5'd2;
+localparam STALL	= 5'd3;
+localparam RET1		= 5'd4;
+localparam RET2		= 5'd5;
+localparam RET3		= 5'd6;
+localparam LPM		= 5'd7;
+localparam STS		= 5'd8;
+localparam LDS1		= 5'd9;
+localparam LDS2		= 5'd10;
+localparam SKIP		= 5'd11;
+localparam WRITEBACK	= 5'd12;
+localparam EXCEPTION	= 5'd13;
+localparam RETI1	= 5'd14;
+localparam RETI2	= 5'd15;
+localparam RETI3	= 5'd16;
+localparam RETI4	= 5'd17;
 
 always @(posedge clk) begin
 	if(rst)
@@ -622,14 +714,15 @@ always @(*) begin
 	io_we = 1'b0;
 
 	dmem_we = 1'b0;
-	// when simulating the synthesized netlist with icarus verilog
-	// this x-bits propagate through the internal state of the cpu.
-	// so we set it to any value (namely 0) instead. -- Clifford Wolf
-	// dmem_sel = DMEM_SEL_UNDEFINED;
-	dmem_sel = 0;
+	dmem_sel = DMEM_SEL_UNDEFINED;
 
 	push = 1'b0;
 	pop = 1'b0;
+
+	exception = 1'b0;
+	irq_ack_en = 1'b0;
+	I_set = 1'b0;
+	I_clr = 1'b0;
 
 	pmem_selz = 1'b0;
 
@@ -638,91 +731,98 @@ always @(*) begin
 	
 	case(state)
 		NORMAL: begin
-			casex(pmem_d)
-				16'b1100_xxxx_xxxx_xxxx: begin
-					/* RJMP */
-					pc_sel = PC_SEL_KL;
-					next_state = STALL;
-				end
-				16'b1101_xxxx_xxxx_xxxx: begin
-					/* RCALL */
-					/* TODO: in which order should we push the bytes? */
-					dmem_sel = DMEM_SEL_SP_PCL;
-					dmem_we = 1'b1;
-					push = 1'b1;
-					next_state = RCALL;
-				end
-				16'b0001_00xx_xxxx_xxxx: begin
-					/* CPSE */
-					pc_sel = PC_SEL_INC;
-					pmem_ce = 1'b1;
-					if(reg_equal)
-						next_state = SKIP;
-				end
-				16'b1111_11xx_xxxx_0xxx: begin
-					/* SBRC - SBRS */
-					pc_sel = PC_SEL_INC;
-					pmem_ce = 1'b1;
-					if(GPR_Rd_b == pmem_d[9])
-						next_state = SKIP;
-				end
-				/* SBIC, SBIS, SBI, CBI are not implemented */
-				16'b1111_0xxx_xxxx_xxxx: begin
-					/* BRBS - BRBC */
-					pmem_ce = 1'b1;
-					if(sreg_read ^ pmem_d[10]) begin
-						pc_sel = PC_SEL_KS;
+			if(irq_request) begin
+				dmem_sel = DMEM_SEL_SP_PCL;
+				dmem_we = 1'b1;
+				exception = 1'b1;
+				push = 1'b1;
+				irq_ack_en = 1'b1;
+				I_clr = 1'b1;
+				next_state = EXCEPTION;
+			end else begin
+				casex(pmem_d)
+					16'b1100_xxxx_xxxx_xxxx: begin
+						/* RJMP */
+						pc_sel = PC_SEL_KL;
 						next_state = STALL;
-					end else
-						pc_sel = PC_SEL_INC;
-				end
-				/* BREQ, BRNE, BRCS, BRCC, BRSH, BRLO, BRMI, BRPL, BRGE, BRLT,
-				 * BRHS, BRHC, BRTS, BRTC, BRVS, BRVC, BRIE, BRID are replaced
-				 * with BRBS/BRBC */
-				16'b1001_00xx_xxxx_1100, /*  X   */
-				16'b1001_00xx_xxxx_1101, /*  X+  */
-				16'b1001_00xx_xxxx_1110, /* -X   */
-				16'b1001_00xx_xxxx_1001, /*  Y+  */
-				16'b1001_00xx_xxxx_1010, /* -Y   */
-				16'b10x0_xxxx_xxxx_1xxx, /*  Y+q */
-				16'b1001_00xx_xxxx_0001, /*  Z+  */
-				16'b1001_00xx_xxxx_0010, /* -Z   */
-				16'b10x0_xxxx_xxxx_0xxx: /*  Z+q */
-				begin
-					casex({pmem_d[12], pmem_d[3:0]})
-						5'b1_1100: dmem_sel = DMEM_SEL_X;
-						5'b1_1101: dmem_sel = DMEM_SEL_XPLUS;
-						5'b1_1110: dmem_sel = DMEM_SEL_XMINUS;
-						5'b1_1001: dmem_sel = DMEM_SEL_YPLUS;
-						5'b1_1010: dmem_sel = DMEM_SEL_YMINUS;
-						5'b0_1xxx: dmem_sel = DMEM_SEL_YQ;
-						5'b1_0001: dmem_sel = DMEM_SEL_ZPLUS;
-						5'b1_0010: dmem_sel = DMEM_SEL_ZMINUS;
-						5'b0_0xxx: dmem_sel = DMEM_SEL_ZQ;
-					endcase
-					if(pmem_d[9]) begin
-						/* ST */
+					end
+					16'b1101_xxxx_xxxx_xxxx: begin
+						/* RCALL */
+						dmem_sel = DMEM_SEL_SP_PCL;
+						dmem_we = 1'b1;
+						push = 1'b1;
+						next_state = RCALL;
+					end
+					16'b0001_00xx_xxxx_xxxx: begin
+						/* CPSE */
 						pc_sel = PC_SEL_INC;
 						pmem_ce = 1'b1;
-						dmem_we = 1'b1;
-					end else begin
-						/* LD */
+						if(reg_equal)
+							next_state = SKIP;
+					end
+					16'b1111_11xx_xxxx_0xxx: begin
+						/* SBRC - SBRS */
+						pc_sel = PC_SEL_INC;
+						pmem_ce = 1'b1;
+						if(GPR_Rd_b == pmem_d[9])
+							next_state = SKIP;
+					end
+					/* SBIC, SBIS, SBI, CBI are not implemented */
+					16'b1111_0xxx_xxxx_xxxx: begin
+						/* BRBS - BRBC */
+						pmem_ce = 1'b1;
+						if(sreg_read ^ pmem_d[10]) begin
+							pc_sel = PC_SEL_KS;
+							next_state = STALL;
+						end else
+							pc_sel = PC_SEL_INC;
+					end
+					/* BREQ, BRNE, BRCS, BRCC, BRSH, BRLO, BRMI, BRPL, BRGE, BRLT,
+					 * BRHS, BRHC, BRTS, BRTC, BRVS, BRVC, BRIE, BRID are replaced
+					 * with BRBS/BRBC */
+					16'b1001_00xx_xxxx_1100, /*  X   */
+					16'b1001_00xx_xxxx_1101, /*  X+  */
+					16'b1001_00xx_xxxx_1110, /* -X   */
+					16'b1001_00xx_xxxx_1001, /*  Y+  */
+					16'b1001_00xx_xxxx_1010, /* -Y   */
+					16'b10x0_xxxx_xxxx_1xxx, /*  Y+q */
+					16'b1001_00xx_xxxx_0001, /*  Z+  */
+					16'b1001_00xx_xxxx_0010, /* -Z   */
+					16'b10x0_xxxx_xxxx_0xxx: /*  Z+q */
+					begin
+						casex({pmem_d[12], pmem_d[3:0]})
+							5'b1_1100: dmem_sel = DMEM_SEL_X;
+							5'b1_1101: dmem_sel = DMEM_SEL_XPLUS;
+							5'b1_1110: dmem_sel = DMEM_SEL_XMINUS;
+							5'b1_1001: dmem_sel = DMEM_SEL_YPLUS;
+							5'b1_1010: dmem_sel = DMEM_SEL_YMINUS;
+							5'b0_1xxx: dmem_sel = DMEM_SEL_YQ;
+							5'b1_0001: dmem_sel = DMEM_SEL_ZPLUS;
+							5'b1_0010: dmem_sel = DMEM_SEL_ZMINUS;
+							5'b0_0xxx: dmem_sel = DMEM_SEL_ZQ;
+						endcase
+						if(pmem_d[9]) begin
+							/* ST */
+							pc_sel = PC_SEL_INC;
+							pmem_ce = 1'b1;
+							dmem_we = 1'b1;
+						end else begin
+							/* LD */
+							next_state = WRITEBACK;
+						end
+					end
+					16'b1011_0xxx_xxxx_xxxx: begin
+						/* IN */
+						io_re = 1'b1;
 						next_state = WRITEBACK;
 					end
-				end
-				16'b1011_0xxx_xxxx_xxxx: begin
-					/* IN */
-					io_re = 1'b1;
-					next_state = WRITEBACK;
-				end
-				16'b1011_1xxx_xxxx_xxxx: begin
-					/* OUT */
-					io_we = 1'b1;
-					pc_sel = PC_SEL_INC;
-					pmem_ce = 1'b1;
-				end
-				16'b1001_00xx_xxxx_xxxx: begin
-					if(pmem_d[3:0] == 4'hf) begin
+					16'b1011_1xxx_xxxx_xxxx: begin
+						/* OUT */
+						io_we = 1'b1;
+						pc_sel = PC_SEL_INC;
+						pmem_ce = 1'b1;
+					end
+					16'b1001_00xx_xxxx_1111: begin
 						if(pmem_d[9]) begin
 							/* PUSH */
 							push = 1'b1;
@@ -736,7 +836,8 @@ always @(*) begin
 							dmem_sel = DMEM_SEL_SP_R;
 							next_state = WRITEBACK;
 						end
-					end else if(pmem_d[3:0] == 4'h0) begin
+					end
+					16'b1001_00xx_xxxx_0000: begin
 						pc_sel = PC_SEL_INC;
 						pmem_ce = 1'b1;
 						if(pmem_d[9])
@@ -746,45 +847,54 @@ always @(*) begin
 							/* LDS */
 							next_state = LDS1;
 					end
-				end
-				16'b1001_0101_000x_1000: begin
-					/* RET - RETI (treated as RET) */
-					/* TODO: in which order should we pop the bytes? */
-					dmem_sel = DMEM_SEL_SP_PCH;
-					pop = 1'b1;
-					next_state = RET1;
-				end
-				16'b1001_0101_1100_1000: begin
-					/* LPM */
-					pmem_selz = 1'b1;
-					pmem_ce = 1'b1;
-					next_state = LPM;
-				end
-				16'b1001_0100_0000_1001: begin
-					/* IJMP */
-					pc_sel = PC_SEL_Z;
-					next_state = STALL;
-				end
-				16'b1001_0101_0000_1001: begin
-					/* ICALL */
-					/* TODO: in which order should we push the bytes? */
-					dmem_sel = DMEM_SEL_SP_PCL;
-					dmem_we = 1'b1;
-					push = 1'b1;
-					next_state = ICALL;
-				end
-				default: begin
-					pc_sel = PC_SEL_INC;
-					normal_en = 1'b1;
-					pmem_ce = 1'b1;
-				end
-			endcase
+					16'b1001_0101_000x_1000: begin
+						/* RET / RETI */
+						dmem_sel = DMEM_SEL_SP_PCH;
+						pop = 1'b1;
+						if(pmem_d[4] == 1'b0)
+							next_state = RET1;
+						else
+							next_state = RETI1;
+					end
+					16'b1001_0101_1100_1000: begin
+						/* LPM */
+						pmem_selz = 1'b1;
+						pmem_ce = 1'b1;
+						next_state = LPM;
+					end
+					16'b1001_0100_0000_1001: begin
+						/* IJMP */
+						pc_sel = PC_SEL_Z;
+						next_state = STALL;
+					end
+					16'b1001_0101_0000_1001: begin
+						/* ICALL */
+						dmem_sel = DMEM_SEL_SP_PCL;
+						dmem_we = 1'b1;
+						push = 1'b1;
+						next_state = ICALL;
+					end
+					default: begin
+						pc_sel = PC_SEL_INC;
+						normal_en = 1'b1;
+						pmem_ce = 1'b1;
+					end
+				endcase
+			end
 		end
 		RCALL: begin
 			dmem_sel = DMEM_SEL_SP_PCH;
 			dmem_we = 1'b1;
 			push = 1'b1;
 			pc_sel = PC_SEL_KL;
+			next_state = STALL;
+		end
+		EXCEPTION: begin
+			dmem_sel = DMEM_SEL_SP_PCH;
+			dmem_we = 1'b1;
+			exception = 1'b1;
+			push = 1'b1;
+			pc_sel = PC_SEL_EX;
 			next_state = STALL;
 		end
 		ICALL: begin
@@ -807,6 +917,26 @@ always @(*) begin
 		RET3: begin
 			pc_sel = PC_SEL_DEC;
 			next_state = STALL;
+		end
+		RETI1: begin
+			pc_sel = PC_SEL_DMEMH;
+			dmem_sel = DMEM_SEL_SP_PCL;
+			pop = 1'b1;
+			next_state = RETI2;
+		end
+		RETI2: begin
+			pc_sel = PC_SEL_DMEML;
+			next_state = RETI3;
+		end
+		RETI3: begin
+			pc_sel = PC_SEL_DEC;
+			next_state = RETI4;
+		end
+		RETI4: begin
+			pc_sel = PC_SEL_INC;
+			pmem_ce = 1'b1;
+			I_set = 1'b1;
+			next_state = NORMAL;
 		end
 		LPM: begin
 			lpm_en = 1'b1;
@@ -871,10 +1001,10 @@ always @(posedge clk) begin
 		$display("%x", pY[15:8]);
 		$display("%x", pZ[7:0]);
 		$display("%x", pZ[15:8]);
-		$display("%x", {1'b0, T, H, S, V, N, Z, C});
+		$display("%x", {I, T, H, S, V, N, Z, C});
 		$display("%x", SP[15:8]);
 		$display("%x", SP[7:0]);
-		$display("%x", PC[14:7]);
+		$display("%x", PC[pmem_width-1:7]);
 		$display("%x", {PC[6:0], 1'b0});
 		tb_regress.dump;
 		$finish;
@@ -886,7 +1016,6 @@ always @(posedge clk) begin
 end
 
 reg [7:0] SPR[0:12];
-reg I;
 initial begin
 	$readmemh("gpr.rom", GPR);
 	$readmemh("spr.rom", SPR);

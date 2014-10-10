@@ -10,6 +10,7 @@ reg rst;
 reg [15:0] pmem_d;
 reg [7:0] dmem_di;
 reg [7:0] io_di;
+reg [7:0] irq;
 
 // navre outputs
 wire pmem_ce;
@@ -21,10 +22,12 @@ wire io_re;
 wire io_we;
 wire [5:0] io_a;
 wire [7:0] io_do;
+wire [7:0] irq_ack;
+wire [pmem_width-1:0] dbg_pc;
 
 softusb_navre #(
-//	pmem_width,
-//	dmem_width
+	pmem_width,
+	dmem_width
 ) UUT (
 	clk,
 	rst,
@@ -42,7 +45,11 @@ softusb_navre #(
 	io_we,
 	io_a,
 	io_do,
-	io_di
+	io_di,
+
+	irq,
+	irq_ack,
+	dbg_pc
 );
 
 integer cycles;
@@ -88,9 +95,10 @@ initial begin
 end
 
 always @(posedge clk) begin
-	if (rst)
+	if (rst) begin
 		pmem_d <= 0;
-	else if (pmem_ce) begin
+		irq <= 0;
+	end else if (pmem_ce) begin
 		addr = pmem_a * 2;
 		$display("+LOG+ %t PR @%x %x", $time, addr, pmem[pmem_a]);
 		pmem_d <= pmem[pmem_a];
