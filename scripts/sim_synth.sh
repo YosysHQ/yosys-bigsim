@@ -21,15 +21,11 @@ rm -f $design/gen/sim_synth.out
 		# insertation of global reset (e.g. for FPGA cores)
 		echo "add -global_input globrst 1"
 		echo "proc -global_arst globrst"
-	else
-		echo "proc"
 	fi
-	if $YOSYS_COARSE; then
-		# some simulations are just to slow on gate level
-		echo "opt; wreduce; share; opt; fsm; opt; memory;;"
-	else
-		echo "synth -run coarse; opt -fine; memory_map"
-		echo "techmap; opt; abc -dff; clean"
+	echo "synth -run coarse; opt -fine"
+	echo "tee -o $design/gen/brams.log memory_bram -rules scripts/brams.txt;;"
+	if ! $YOSYS_COARSE; then
+		echo "memory_map; techmap; opt; abc -dff; clean"
 	fi
 	if $YOSYS_SPLITNETS; then
 		# icarus verilog has a performance problems when there are
@@ -54,6 +50,7 @@ if [ $design = bch_verilog ]; then
 	sed -i 's,OPTION="SERIAL",OPTION=SERIAL,g' $design/gen/synth.v
 fi
 
-iverilog -s testbench -o $design/gen/sim_synth -I$design/rtl/ -I$design/sim/ $design/gen/synth.v $sim_files
+ulimit -v 1048576
+iverilog -s testbench -o $design/gen/sim_synth -I$design/rtl/ -I$design/sim/ $design/gen/synth.v $sim_files scripts/brams.v
 vvp -n -l $design/gen/sim_synth.out $design/gen/sim_synth
 
