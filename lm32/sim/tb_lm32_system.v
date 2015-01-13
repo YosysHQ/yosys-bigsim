@@ -29,6 +29,7 @@
  */
 
 `include "lm32_include.v"
+`timescale 1 ns / 1 ps
 
 module testbench();
 
@@ -57,6 +58,7 @@ lm32_top lm32(
 	.rst_i(sys_rst),
 
 	.interrupt(interrupt),
+	.ext_break(0),
 
 	.I_ACK_I(i_ack),
 	.I_ADR_O(i_adr),
@@ -89,14 +91,14 @@ lm32_top lm32(
 
 // clock
 initial sys_clk = 1'b0;
-always #5 sys_clk = ~sys_clk;
+always #50 sys_clk = ~sys_clk;
 
 // reset
 initial begin
 	sys_rst = 1'b0;
-	repeat (10) @(posedge sys_clk);
+	repeat (500) @(posedge sys_clk);
 	sys_rst = 1'b1;
-	repeat (10) @(posedge sys_clk);
+	repeat (500) @(posedge sys_clk);
 	sys_rst = 1'b0;
 end
 
@@ -180,6 +182,15 @@ always @(posedge sys_clk) begin
 		i_ack <= 1'b0;
 		if(i_cyc & i_stb & ~i_ack)
 			i_ack <= 1'b1;
+	end
+end
+
+integer clock_counter = 0;
+always @(posedge sys_clk) begin
+	clock_counter = clock_counter + 1;
+	if (clock_counter == 1000) begin
+		$display("-- 1000 sys_clk cycles --");
+		clock_counter = 0;
 	end
 end
 
@@ -311,6 +322,7 @@ end
 initial $readmemh(prog, mem);
 
 // trace pipeline
+`ifdef TB_ENABLE_PL_TRACES
 reg [256*8:0] tracefile;
 integer trace_started;
 integer trace_enabled;
@@ -364,6 +376,7 @@ always @(posedge sys_clk) begin
 		cycle = cycle + 1;
 	end
 end
+`endif
 
 initial begin
 	// $dumpfile("bench.vcd");
