@@ -58,7 +58,7 @@ lm32_top lm32(
 	.rst_i(sys_rst),
 
 	.interrupt(interrupt),
-	.ext_break(0),
+	.ext_break(1'b0),
 
 	.I_ACK_I(i_ack),
 	.I_ADR_O(i_adr),
