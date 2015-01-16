@@ -383,7 +383,7 @@ initial begin
 	// @(posedge sys_rst);
 	// repeat (5) @(posedge sys_clk);
 	// $dumpvars(0, testbench);
-	// repeat (1200) @(posedge sys_clk);
+	// repeat (2500) @(posedge sys_clk);
 	// $finish;
 end
 
