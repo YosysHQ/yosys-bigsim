@@ -39,6 +39,22 @@
 // Enable MMU
 `define CFG_MMU_ENABLED
 
+`ifdef USE_MY_CLOG2
+function integer my_clog2;
+	input integer v;
+	begin
+		if (v > 0)
+			v = v - 1;
+		my_clog2 = 0;
+		while (v) begin
+			v = v >> 1;
+			my_clog2 = my_clog2 + 1;
+		end
+	end
+endfunction
+`define CLOG2 my_clog2
+`else
 `define CLOG2 $clog2
+`endif
 
 `endif
