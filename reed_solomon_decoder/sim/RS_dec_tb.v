@@ -72,7 +72,6 @@ begin
 end
 
 initial 
-
 begin
 	h=0;
 	k=0;
@@ -85,6 +84,15 @@ begin
 	enable=1;
 end
 
+initial
+begin
+	// $dumpfile("bench.vcd");
+	// repeat (5) @(posedge clk);
+	// $dumpvars(0, testbench);
+	// repeat (800) @(posedge clk);
+	// $write("\n");
+	// $finish;
+end
 
 ///////////////////// inputs///////////////
 
