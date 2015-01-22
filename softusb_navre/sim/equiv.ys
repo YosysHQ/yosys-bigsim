@@ -1,35 +1,38 @@
 
-# read_verilog ../../../yosys/tests/simple/fiedler-cooley.v
-# rename up3down5 softusb_navre
-
 read_verilog ../rtl/softusb_navre.v
 hierarchy -check -top softusb_navre
+proc
+design -save gold
+opt
+wreduce
+alumacc
+share
+opt
+# fsm
+# opt -fast
+# memory -nomap
+# opt_clean
+# opt -fast -full
+# memory_map
+# opt -full
+# techmap
+# opt -fast
+# abc -fast
+# opt -fast
+design -stash gate
 
-cd softusb_navre
-proc; opt; memory; opt
-cd ..
+design -copy-from gold -as gold softusb_navre
+design -copy-from gate -as gate softusb_navre
+memory
 
-copy softusb_navre gold
+equiv_make gold gate equiv
+hierarchy -top equiv
 
-cd softusb_navre
-# freduce -v
-techmap; opt; abc;;
-cd ..
+write_ilang equiv01.il
 
-rename softusb_navre gate
+equiv_simple
+equiv_induct
+equiv_status
 
-# expose -dff -shared gold gate
-# miter -equiv -ignore_gold_x -make_assert -make_outputs -make_outcmp gold gate miter
-# 
-# cd miter
-# flatten; opt -undriven
-# sat -verify -maxsteps 5 -set-init-undef -set-def-inputs -prove-asserts -tempinduct-def \
-#     -seq 1 -set-at 1 in_rst 1 # -show-inputs -show-outputs
-
-expose -evert-dff -shared gold gate
-miter -equiv gold gate miter
-
-cd miter
-flatten; opt -undriven
-sat -dump_cnf equiv.cnf -verify -prove trigger 0
+write_ilang equiv02.il
 
