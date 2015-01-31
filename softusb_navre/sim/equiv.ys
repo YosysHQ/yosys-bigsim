@@ -1,38 +1,19 @@
 
 read_verilog ../rtl/softusb_navre.v
-hierarchy -check -top softusb_navre
-proc
+
 design -save gold
-opt
-wreduce
-alumacc
-share
-opt
-# fsm
-# opt -fast
-# memory -nomap
-# opt_clean
-# opt -fast -full
-# memory_map
-# opt -full
-# techmap
-# opt -fast
-# abc -fast
-# opt -fast
-design -stash gate
+synth -encfile equiv.enc
+design -save gate
 
 design -copy-from gold -as gold softusb_navre
 design -copy-from gate -as gate softusb_navre
-memory
+proc; memory
 
-equiv_make gold gate equiv
+equiv_make -encfile equiv.enc gold gate equiv
 hierarchy -top equiv
 
-write_ilang equiv01.il
-
-equiv_simple
+opt -keepdc
+equiv_simple -undef
 equiv_induct
 equiv_status
-
-write_ilang equiv02.il
 
