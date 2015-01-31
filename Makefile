@@ -10,13 +10,19 @@ quick: $(addsuffix /gen/test.ok,$(QUICK_DESIGNS))
 	@echo "           ALL QUICK TESTS PASSED."
 	@echo ""
 
-full: $(addsuffix /gen/test.ok,$(DESIGNS)) 
+full: $(addsuffix /gen/test.ok,$(DESIGNS)) softusb_navre/gen/equiv.ok
 	@echo ""
 	@echo "           ALL TESTS PASSED."
 	@echo ""
 
 # setting .SECONDARY to empty prohibits deletion of all intermediate targets
 .SECONDARY:
+
+softusb_navre/gen/equiv.log:
+	yosys -v1 -l softusb_navre/gen/equiv.log softusb_navre/sim/equiv.ys
+
+softusb_navre/gen/equiv.ok: softusb_navre/gen/equiv.log
+	grep -q "^End of script." softusb_navre/gen/equiv.log
 
 %/gen/sim_rtl.out:
 	bash scripts/sim_rtl.sh $(subst /gen/sim_rtl.out,,$@)
