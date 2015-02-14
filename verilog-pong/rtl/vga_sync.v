@@ -58,8 +58,10 @@ module vga_sync
 				else
 					v_count_next = v_count + 1;
 			end
-         else
+         else begin
             h_count_next = h_count + 1;
+	    v_count_next = v_count;
+	 end
       else
 		begin
          h_count_next = h_count;
