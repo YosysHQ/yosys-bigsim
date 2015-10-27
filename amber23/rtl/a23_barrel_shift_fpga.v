@@ -211,20 +211,20 @@ endcase
 // Cost: 33 4-to-1 LUTs.
 always @*
 casez (lsl_selector) // synthesis full_case parallel_case
-	7'b1??:	lsl_mask =  33'h_1_0000_0000;
-	7'b01?:	lsl_mask =  33'h_0_0000_0000;
-	7'b001:	lsl_mask = { 1'h_1, low_mask, 16'h_0000};
-	7'b000:	lsl_mask = {17'h_1_ffff, low_mask};
+	7'b1??:	lsl_mask =  33'h 1_0000_0000;
+	7'b01?:	lsl_mask =  33'h 0_0000_0000;
+	7'b001:	lsl_mask = { 1'h 1, low_mask, 16'h 0000};
+	7'b000:	lsl_mask = {17'h 1_ffff, low_mask};
 endcase
 
 // Right-hand mask calculation.
 // Cost: 33 4-to-1 LUTs.
 always @*
 casez (lsr_selector) // synthesis full_case parallel_case
-	7'b1??:	lsr_mask =  33'h_1_0000_0000;
-	7'b01?:	lsr_mask =  33'h_0_0000_0000;
-	7'b000:	lsr_mask = { 1'h_1, bit_swap(low_mask), 16'h_ffff};
-	7'b001:	lsr_mask = {17'h_1_0000, bit_swap(low_mask)};
+	7'b1??:	lsr_mask =  33'h 1_0000_0000;
+	7'b01?:	lsr_mask =  33'h 0_0000_0000;
+	7'b000:	lsr_mask = { 1'h 1, bit_swap(low_mask), 16'h ffff};
+	7'b001:	lsr_mask = {17'h 1_0000, bit_swap(low_mask)};
 endcase
 
 // Alias: right-rotated
